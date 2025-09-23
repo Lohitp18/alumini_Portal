@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'pending_users.dart';
 import 'pending_events.dart';
 import 'pending_opportunities.dart';
+import '../../lib/pages/pending_reports.dart';
 
 class AdminHome extends StatelessWidget {
   @override
@@ -41,6 +42,16 @@ class AdminHome extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => PendingOpportunitiesPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              child: const Text('View Reports'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PendingReportsPage()),
                 );
               },
             ),

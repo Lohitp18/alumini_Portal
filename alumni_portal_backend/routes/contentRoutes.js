@@ -22,7 +22,7 @@ const router = express.Router();
 // Public routes - get approved content
 router.get("/events", getApprovedEvents);
 router.get("/opportunities", getApprovedOpportunities);
-router.get("/posts", getApprovedPosts);
+router.get("/posts", authMiddleware, getApprovedPosts); // Require auth for like info
 router.get("/institution-posts", getApprovedInstitutionPosts);
 
 // Protected routes - create content (requires auth)

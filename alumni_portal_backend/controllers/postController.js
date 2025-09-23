@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const Post = require('../models/Post');
 const Connection = require('../models/Connection');
+const Report = require('../models/Report');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -63,6 +64,82 @@ exports.getFriendsFeed = async (req, res) => {
   } catch (err) {
     console.error('getFriendsFeed error', err);
     return res.status(500).json({ message: 'Failed to fetch feed' });
+  }
+};
+
+// Like/Unlike a post
+exports.toggleLike = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const isLiked = post.likes.includes(userId);
+    
+    if (isLiked) {
+      // Unlike
+      post.likes.pull(userId);
+    } else {
+      // Like
+      post.likes.push(userId);
+    }
+
+    await post.save();
+
+    return res.json({
+      liked: !isLiked,
+      likeCount: post.likes.length
+    });
+  } catch (err) {
+    console.error('toggleLike error', err);
+    return res.status(500).json({ message: 'Failed to toggle like' });
+  }
+};
+
+// Report a post
+exports.reportPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { reason, description } = req.body;
+    const userId = req.user._id;
+
+    if (!reason) {
+      return res.status(400).json({ message: 'Reason is required' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Check if user already reported this post
+    const existingReport = await Report.findOne({
+      reporterId: userId,
+      reportedItemId: postId,
+      reportedItemType: 'Post'
+    });
+
+    if (existingReport) {
+      return res.status(400).json({ message: 'You have already reported this post' });
+    }
+
+    // Create report
+    const report = await Report.create({
+      reporterId: userId,
+      reportedItemId: postId,
+      reportedItemType: 'Post',
+      reason,
+      description: description || ''
+    });
+
+    return res.status(201).json({ message: 'Post reported successfully', report });
+  } catch (err) {
+    console.error('reportPost error', err);
+    return res.status(500).json({ message: 'Failed to report post' });
   }
 };
 

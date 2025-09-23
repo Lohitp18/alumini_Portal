@@ -212,27 +212,15 @@ class _HomePageState extends State<HomePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          TextButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('You liked this post')),
-                              );
-                            },
-                            icon: const Icon(Icons.thumb_up_alt_outlined,
-                                size: 18),
-                            label: const Text('Like'),
+                          _LikeButton(
+                            postId: item['_id'],
+                            baseUrl: _baseUrl,
+                            initialLiked: item['isLiked'] ?? false,
+                            initialLikeCount: item['likeCount'] ?? item['likes']?.length ?? 0,
                           ),
-                          TextButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Reported. Thank you.')),
-                              );
-                            },
-                            icon: const Icon(Icons.flag_outlined,
-                                color: Colors.red, size: 18),
-                            label: const Text('Report'),
+                          _ReportButton(
+                            postId: item['_id'],
+                            baseUrl: _baseUrl,
                           ),
                         ],
                       ),
@@ -363,5 +351,223 @@ class _CreatePostPageState extends State<_CreatePostPage> {
         ),
       ),
     );
+  }
+}
+
+class _LikeButton extends StatefulWidget {
+  final String postId;
+  final String baseUrl;
+  final bool initialLiked;
+  final int initialLikeCount;
+
+  const _LikeButton({
+    required this.postId,
+    required this.baseUrl,
+    required this.initialLiked,
+    required this.initialLikeCount,
+  });
+
+  @override
+  State<_LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends State<_LikeButton> {
+  late bool _isLiked;
+  late int _likeCount;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLiked = widget.initialLiked;
+    _likeCount = widget.initialLikeCount;
+  }
+
+  Future<void> _toggleLike() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      
+      if (token == null || token.isEmpty) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.patch(
+        Uri.parse('${widget.baseUrl}/api/posts/${widget.postId}/like'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _isLiked = data['liked'];
+          _likeCount = data['likeCount'];
+        });
+      } else {
+        throw Exception('Failed to toggle like');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update like: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: _isLoading ? null : _toggleLike,
+      icon: _isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              _isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined,
+              size: 18,
+              color: _isLiked ? Colors.blue : Colors.grey,
+            ),
+      label: Text(
+        _likeCount > 0 ? '$_likeCount' : 'Like',
+        style: TextStyle(
+          color: _isLiked ? Colors.blue : Colors.grey,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportButton extends StatelessWidget {
+  final String postId;
+  final String baseUrl;
+
+  const _ReportButton({
+    required this.postId,
+    required this.baseUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => _showReportDialog(context),
+      icon: const Icon(Icons.flag_outlined, color: Colors.red, size: 18),
+      label: const Text('Report'),
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    String? selectedReason;
+    final TextEditingController descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Post'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Please select a reason for reporting this post:'),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selectedReason,
+              decoration: const InputDecoration(
+                labelText: 'Reason',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'spam', child: Text('Spam')),
+                DropdownMenuItem(value: 'inappropriate_content', child: Text('Inappropriate Content')),
+                DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
+                DropdownMenuItem(value: 'false_information', child: Text('False Information')),
+                DropdownMenuItem(value: 'copyright_violation', child: Text('Copyright Violation')),
+                DropdownMenuItem(value: 'other', child: Text('Other')),
+              ],
+              onChanged: (value) {
+                selectedReason = value;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Additional Details (Optional)',
+                border: OutlineInputBorder(),
+                hintText: 'Please provide more details...',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => _submitReport(context, selectedReason, descriptionController.text),
+            child: const Text('Submit Report'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitReport(BuildContext context, String? reason, String description) async {
+    if (reason == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a reason')),
+      );
+      return;
+    }
+
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      
+      if (token == null || token.isEmpty) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/posts/$postId/report'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'reason': reason,
+          'description': description,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Report submitted successfully')),
+        );
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to submit report');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit report: $e')),
+      );
+    }
   }
 }
