@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const bcrypt = require('bcryptjs');
 
 // GET /api/users/approved?year=&institution=&course=&q=
 exports.getApprovedAlumni = async (req, res) => {
@@ -27,6 +28,108 @@ exports.getApprovedAlumni = async (req, res) => {
   } catch (err) {
     console.error("getApprovedAlumni error", err);
     return res.status(500).json({ message: "Failed to fetch alumni" });
+  }
+};
+
+// GET /api/users/profile - Get current user's profile
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PUT /api/users/profile - Update current user's profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const updateData = req.body;
+
+    // Remove fields that shouldn't be updated directly
+    delete updateData.password;
+    delete updateData._id;
+    delete updateData.email; // Email shouldn't be changed via profile update
+    delete updateData.status;
+    delete updateData.isAdmin;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PUT /api/users/privacy-settings - Update privacy settings
+exports.updatePrivacySettings = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const privacySettings = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { privacySettings },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Privacy settings updated successfully', privacySettings: user.privacySettings });
+  } catch (error) {
+    console.error('Error updating privacy settings:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PUT /api/users/change-password - Change password
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
