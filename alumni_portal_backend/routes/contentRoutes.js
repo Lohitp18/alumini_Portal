@@ -8,8 +8,10 @@ const {
   getApprovedInstitutionPosts,
   getPendingEvents,
   getPendingOpportunities,
+  getPendingPosts,
   updateEventStatus,
   updateOpportunityStatus,
+  updatePostStatus,
   uploadOptionalImage,
 } = require("../controllers/contentController");
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -29,7 +31,9 @@ router.post("/opportunities", authMiddleware, uploadOptionalImage, createOpportu
 // Admin routes - manage pending content
 router.get("/admin/pending-events", getPendingEvents);
 router.get("/admin/pending-opportunities", getPendingOpportunities);
+router.get("/admin/pending-posts", getPendingPosts);
 router.put("/admin/events/:id/status", updateEventStatus);
+router.put("/admin/posts/:id/status", updatePostStatus);
 router.put("/admin/opportunities/:id/status", updateOpportunityStatus);
 
 module.exports = router;

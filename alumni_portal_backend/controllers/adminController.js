@@ -10,6 +10,16 @@ exports.getPendingUsers = async (req, res) => {
     }
 };
 
+// Get all approved users
+exports.getApprovedUsers = async (req, res) => {
+    try {
+        const users = await User.find({ status: 'approved' });
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // Approve a user
 exports.approveUser = async (req, res) => {
     try {

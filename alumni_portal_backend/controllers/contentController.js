@@ -53,12 +53,9 @@ const listApproved = async (Model, res) => {
 
 module.exports = {
   getApprovedEvents: async (_req, res) => listApproved(Event, res),
+
   createEvent: async (req, res) => {
     try {
-      console.log("Create event request received:", req.body);
-      console.log("User:", req.user);
-      console.log("File:", req.file);
-      
       const { title, description, date, location, status } = req.body;
       if (!title || !description || !date) {
         return res.status(400).json({ message: "title, description, date are required" });
@@ -69,11 +66,10 @@ module.exports = {
         description,
         date,
         location: location || null,
-        status: status || "pending", // default to pending for admin approval
-        postedBy: req.user?.id, // from auth middleware
+        status: status || "pending",
+        postedBy: req.user?.id,
       };
 
-      // Handle image upload
       if (req.file) {
         eventData.imageUrl = `/uploads/${req.file.filename}`;
       }
@@ -85,28 +81,24 @@ module.exports = {
       return res.status(500).json({ message: "Failed to create event" });
     }
   },
+
   createOpportunity: async (req, res) => {
     try {
-      console.log("Create opportunity request received:", req.body);
-      console.log("User:", req.user);
-      console.log("File:", req.file);
-      
       const { title, description, company, applyLink, type, status } = req.body;
       if (!title || !description) {
         return res.status(400).json({ message: "title and description are required" });
       }
-      
+
       const opportunityData = {
         title,
         description,
         company: company || null,
         applyLink: applyLink || null,
         type: type || null,
-        status: status || "pending", // default to pending for admin approval
-        postedBy: req.user?.id, // from auth middleware
+        status: status || "pending",
+        postedBy: req.user?.id,
       };
 
-      // Handle image upload
       if (req.file) {
         opportunityData.imageUrl = `/uploads/${req.file.filename}`;
       }
@@ -118,11 +110,11 @@ module.exports = {
       return res.status(500).json({ message: "Failed to create opportunity" });
     }
   },
+
   getApprovedOpportunities: async (_req, res) => listApproved(Opportunity, res),
   getApprovedPosts: async (_req, res) => listApproved(Post, res),
   getApprovedInstitutionPosts: async (_req, res) => listApproved(InstitutionPost, res),
-  
-  // Admin functions to get pending items
+
   getPendingEvents: async (_req, res) => {
     try {
       const events = await Event.find({ status: "pending" })
@@ -134,7 +126,7 @@ module.exports = {
       return res.status(500).json({ message: "Failed to fetch pending events" });
     }
   },
-  
+
   getPendingOpportunities: async (_req, res) => {
     try {
       const opportunities = await Opportunity.find({ status: "pending" })
@@ -146,66 +138,88 @@ module.exports = {
       return res.status(500).json({ message: "Failed to fetch pending opportunities" });
     }
   },
-  
-  // Approve/reject functions
+
+  getPendingPosts: async (_req, res) => {
+    try {
+      const posts = await Post.find({ status: "pending" }).sort({ createdAt: -1 });
+      return res.json(posts);
+    } catch (err) {
+      console.error("getPendingPosts error", err);
+      return res.status(500).json({ message: "Failed to fetch pending posts" });
+    }
+  },
+
   updateEventStatus: async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      
       if (!["approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
       }
-      
+
       const event = await Event.findByIdAndUpdate(
         id,
         { status },
         { new: true }
       ).populate("postedBy", "name email");
-      
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      
+
+      if (!event) return res.status(404).json({ message: "Event not found" });
+
       return res.json(event);
     } catch (err) {
       console.error("updateEventStatus error", err);
       return res.status(500).json({ message: "Failed to update event status" });
     }
   },
-  
+
   updateOpportunityStatus: async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      
       if (!["approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
       }
-      
+
       const opportunity = await Opportunity.findByIdAndUpdate(
         id,
         { status },
         { new: true }
       ).populate("postedBy", "name email");
-      
-      if (!opportunity) {
-        return res.status(404).json({ message: "Opportunity not found" });
-      }
-      
+
+      if (!opportunity) return res.status(404).json({ message: "Opportunity not found" });
+
       return res.json(opportunity);
     } catch (err) {
       console.error("updateOpportunityStatus error", err);
       return res.status(500).json({ message: "Failed to update opportunity status" });
     }
   },
-  
-  // Custom middleware for optional image upload
+
+  updatePostStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+      }
+
+      const post = await Post.findByIdAndUpdate(id, { status }, { new: true });
+
+      if (!post) return res.status(404).json({ message: "Post not found" });
+
+      return res.json(post);
+    } catch (err) {
+      console.error("updatePostStatus error", err);
+      return res.status(500).json({ message: "Failed to update post status" });
+    }
+  },
+
+  // Middleware for optional image upload
   uploadOptionalImage: (req, res, next) => {
     uploadOptional(req, res, (err) => {
       if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ message: "File too large. Maximum size is 5MB." });
         }
         return res.status(400).json({ message: err.message });
       } else if (err) {
@@ -214,10 +228,6 @@ module.exports = {
       next();
     });
   },
-  
-  // Export multer middleware
-  upload,
+
+  upload, // Export multer middleware
 };
-
-
-
