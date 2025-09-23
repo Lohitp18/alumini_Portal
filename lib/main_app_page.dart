@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'pages/home.dart';
 import 'pages/alumini.dart';
 import 'pages/opportunities.dart';
 import 'pages/event.dart';
 import 'pages/institution.dart';
+import 'pages/notifications.dart';
 import 'profile_page.dart';
 import 'pages/admin.dart';
 
@@ -17,6 +20,7 @@ class MainAppPage extends StatefulWidget {
 
 class _MainAppPageState extends State<MainAppPage> {
   int _currentIndex = 0;
+  int _unreadNotificationCount = 0;
 
   final List<Widget> _pages = [
     HomePage(),
@@ -25,6 +29,40 @@ class _MainAppPageState extends State<MainAppPage> {
     EventsPage(),
     InstitutionsPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadNotificationCount();
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      
+      if (token != null && token.isNotEmpty) {
+        final response = await http.get(
+          Uri.parse('${const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000')}/api/notifications/unread-count'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (mounted) {
+            setState(() {
+              _unreadNotificationCount = data['unreadCount'] ?? 0;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Silently fail - notifications are not critical
+    }
+  }
 
   void _onTabTapped(int index) {
     setState(() {
@@ -50,15 +88,44 @@ class _MainAppPageState extends State<MainAppPage> {
           ],
         ),
         actions: [
-          // Notification Icon
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NotificationsPage()),
-              );
-            },
+          // Notification Icon with badge
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                  ).then((_) => _loadUnreadNotificationCount()); // Refresh count when returning
+                },
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadNotificationCount > 99 ? '99+' : _unreadNotificationCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
 
           // Profile Popup Menu
@@ -130,17 +197,3 @@ class _MainAppPageState extends State<MainAppPage> {
   }
 }
 
-// Placeholder Notifications Page
-class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
-      body: const Center(
-        child: Text('No new notifications'),
-      ),
-    );
-  }
-}

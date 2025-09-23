@@ -2,6 +2,7 @@ const Event = require("../models/Event");
 const Opportunity = require("../models/Opportunity");
 const Post = require("../models/Post");
 const InstitutionPost = require("../models/InstitutionPost");
+const { createNotification } = require("./notificationController");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -128,6 +129,17 @@ module.exports = {
       };
       if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
       const post = await InstitutionPost.create(data);
+      
+      // Create notification for institution post (since it's approved immediately)
+      await createNotification(
+        'institution_post',
+        'New Institution Post',
+        `A new post from ${institution}: "${title}"`,
+        post._id,
+        'InstitutionPost',
+        { institution: institution }
+      );
+      
       return res.status(201).json(post);
     } catch (err) {
       console.error("createInstitutionPost error", err);
@@ -185,6 +197,18 @@ module.exports = {
 
       if (!event) return res.status(404).json({ message: "Event not found" });
 
+      // Create notification when event is approved
+      if (status === "approved") {
+        await createNotification(
+          'event',
+          'New Event Available',
+          `A new event "${event.title}" has been posted`,
+          event._id,
+          'Event',
+          { postedBy: event.postedBy }
+        );
+      }
+
       return res.json(event);
     } catch (err) {
       console.error("updateEventStatus error", err);
@@ -208,6 +232,18 @@ module.exports = {
 
       if (!opportunity) return res.status(404).json({ message: "Opportunity not found" });
 
+      // Create notification when opportunity is approved
+      if (status === "approved") {
+        await createNotification(
+          'opportunity',
+          'New Opportunity Available',
+          `A new opportunity "${opportunity.title}" has been posted`,
+          opportunity._id,
+          'Opportunity',
+          { postedBy: opportunity.postedBy }
+        );
+      }
+
       return res.json(opportunity);
     } catch (err) {
       console.error("updateOpportunityStatus error", err);
@@ -226,6 +262,18 @@ module.exports = {
       const post = await Post.findByIdAndUpdate(id, { status }, { new: true });
 
       if (!post) return res.status(404).json({ message: "Post not found" });
+
+      // Create notification when post is approved
+      if (status === "approved") {
+        await createNotification(
+          'post',
+          'New Post Available',
+          `A new post "${post.title}" has been posted`,
+          post._id,
+          'Post',
+          { postedBy: post.authorId }
+        );
+      }
 
       return res.json(post);
     } catch (err) {
