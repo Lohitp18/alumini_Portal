@@ -48,13 +48,21 @@ const uploadOptional = multer({
 }).single("image");
 
 const listApproved = async (Model, res, userId = null) => {
-  let items = await Model.find({ status: "approved" }).sort({ createdAt: -1 }).limit(50);
+  let items;
+  
+  // For posts, get all posts (approved and pending) for home page
+  if (Model.modelName === 'Post') {
+    items = await Model.find({}).sort({ createdAt: -1 }).limit(50);
+  } else {
+    // For other content types, only show approved
+    items = await Model.find({ status: "approved" }).sort({ createdAt: -1 }).limit(50);
+  }
   
   // For posts, add like information
-  if (Model.modelName === 'Post' && userId) {
+  if (Model.modelName === 'Post') {
     items = items.map(post => {
       const postObj = post.toObject();
-      postObj.isLiked = post.likes.includes(userId);
+      postObj.isLiked = userId ? post.likes.includes(userId) : false;
       postObj.likeCount = post.likes.length;
       return postObj;
     });
@@ -124,7 +132,7 @@ module.exports = {
   },
 
   getApprovedOpportunities: async (_req, res) => listApproved(Opportunity, res),
-  getApprovedPosts: async (req, res) => listApproved(Post, res, req.user?._id),
+  getApprovedPosts: async (_req, res) => listApproved(Post, res),
   getApprovedInstitutionPosts: async (_req, res) => listApproved(InstitutionPost, res),
   createInstitutionPost: async (req, res) => {
     try {
