@@ -50,6 +50,18 @@ class _MainAppPageState extends State<MainAppPage> {
           ],
         ),
         actions: [
+          // Notification Icon
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsPage()),
+              );
+            },
+          ),
+
+          // Profile Popup Menu
           PopupMenuButton<String>(
             icon: const Icon(Icons.person),
             onSelected: (value) async {
@@ -113,6 +125,21 @@ class _MainAppPageState extends State<MainAppPage> {
             label: 'Institutions',
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Placeholder Notifications Page
+class NotificationsPage extends StatelessWidget {
+  const NotificationsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notifications')),
+      body: const Center(
+        child: Text('No new notifications'),
       ),
     );
   }

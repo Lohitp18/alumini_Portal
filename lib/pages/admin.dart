@@ -11,7 +11,10 @@ class AdminPage extends StatefulWidget {
 }
 
 class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMixin {
-  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  final String _baseUrl = const String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:5000',
+  );
   late TabController _tabController;
 
   @override
@@ -33,7 +36,7 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
         title: const Text('Admin Dashboard'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
+          tabs: const [
             Tab(text: 'Users'),
             Tab(text: 'Posts'),
             Tab(text: 'Events'),
@@ -73,7 +76,7 @@ class _UsersAdminState extends State<_UsersAdmin> {
     final token = await storage.read(key: 'auth_token');
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer ' + token,
+      if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -84,19 +87,26 @@ class _UsersAdminState extends State<_UsersAdmin> {
   }
 
   Future<void> _load() async {
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse(widget.baseUrl + '/admin/approved-users')
-          : Uri.parse(widget.baseUrl + '/admin/users');
+          ? Uri.parse('${widget.baseUrl}/admin/approved-users')
+          : Uri.parse('${widget.baseUrl}/admin/users');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
-    } catch (e) {
+    } catch (_) {
       error = 'Failed to load users';
     } finally {
-      if (mounted) setState(() { loading = false; });
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 
@@ -104,7 +114,7 @@ class _UsersAdminState extends State<_UsersAdmin> {
     try {
       final headers = await _authHeaders();
       final res = await http.patch(
-        Uri.parse(widget.baseUrl + '/admin/' + action + '/' + id),
+        Uri.parse('${widget.baseUrl}/admin/$action/$id'),
         headers: headers,
       );
       if (res.statusCode == 200) _load();
@@ -123,7 +133,8 @@ class _UsersAdminState extends State<_UsersAdmin> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => _CreateInstitutionPostPage(baseUrl: widget.baseUrl),
+                  builder: (_) =>
+                      _CreateInstitutionPostPage(baseUrl: widget.baseUrl),
                 ),
               );
             },
@@ -135,13 +146,23 @@ class _UsersAdminState extends State<_UsersAdmin> {
             ChoiceChip(
               label: const Text('Pending'),
               selected: !showApproved,
-              onSelected: (v) { setState(() { showApproved = false; }); _load(); },
+              onSelected: (v) {
+                setState(() {
+                  showApproved = false;
+                });
+                _load();
+              },
             ),
             const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('Approved'),
               selected: showApproved,
-              onSelected: (v) { setState(() { showApproved = true; }); _load(); },
+              onSelected: (v) {
+                setState(() {
+                  showApproved = true;
+                });
+                _load();
+              },
             ),
           ],
         ),
@@ -149,32 +170,44 @@ class _UsersAdminState extends State<_UsersAdmin> {
           child: loading
               ? const Center(child: CircularProgressIndicator())
               : error != null
-                  ? Center(child: Text(error!))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final u = items[i] as Map<String, dynamic>;
-                          return ListTile(
-                            leading: const Icon(Icons.person),
-                            title: Text((u['name'] ?? u['email'] ?? '').toString()),
-                            subtitle: Text((u['email'] ?? '').toString()),
-                            trailing: showApproved
-                                ? null
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _act(u['_id'].toString(), 'approve')),
-                                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _act(u['_id'].toString(), 'reject')),
-                                    ],
-                                  ),
-                          );
-                        },
+              ? Center(child: Text(error!))
+              : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final u = items[i] as Map<String, dynamic>;
+                return ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(
+                    (u['name'] ?? u['email'] ?? '').toString(),
+                  ),
+                  subtitle: Text((u['email'] ?? '').toString()),
+                  trailing: showApproved
+                      ? null
+                      : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check,
+                            color: Colors.green),
+                        onPressed: () =>
+                            _act(u['_id'].toString(), 'approve'),
                       ),
-                    ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            color: Colors.red),
+                        onPressed: () =>
+                            _act(u['_id'].toString(), 'reject'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ],
     );
@@ -186,10 +219,12 @@ class _CreateInstitutionPostPage extends StatefulWidget {
   const _CreateInstitutionPostPage({required this.baseUrl});
 
   @override
-  State<_CreateInstitutionPostPage> createState() => _CreateInstitutionPostPageState();
+  State<_CreateInstitutionPostPage> createState() =>
+      _CreateInstitutionPostPageState();
 }
 
-class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> {
+class _CreateInstitutionPostPageState
+    extends State<_CreateInstitutionPostPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
@@ -221,17 +256,19 @@ class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> 
     final token = await storage.read(key: 'auth_token');
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer ' + token,
+      if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _submitting = true; });
+    setState(() {
+      _submitting = true;
+    });
     try {
       final headers = await _authHeaders();
       final res = await http.post(
-        Uri.parse(widget.baseUrl + '/api/content/institution-posts'),
+        Uri.parse('${widget.baseUrl}/api/content/institution-posts'),
         headers: headers,
         body: jsonEncode({
           'institution': _institution,
@@ -242,16 +279,26 @@ class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> 
       );
       if (res.statusCode == 201 && mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Institution post created')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Institution post created')),
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ' + res.statusCode.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: ${res.statusCode}')),
+        );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request failed')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request failed')),
+        );
       }
     } finally {
-      if (mounted) setState(() { _submitting = false; });
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
     }
   }
 
@@ -266,16 +313,26 @@ class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> 
           child: ListView(
             children: [
               DropdownButtonFormField<String>(
-                items: _institutions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (v) => _institution = v,
+                value: _institution, // ✅ shows current selection
+                items: _institutions
+                    .map((e) =>
+                    DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    _institution = v;
+                  });
+                },
                 decoration: const InputDecoration(labelText: 'Institution'),
-                validator: (v) => v == null || v.isEmpty ? 'Select institution' : null,
+                validator: (v) =>
+                v == null || v.isEmpty ? 'Select institution' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _titleCtrl,
                 decoration: const InputDecoration(labelText: 'Title'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Title required' : null,
+                validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Title required' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -283,12 +340,16 @@ class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> 
                 decoration: const InputDecoration(labelText: 'Content'),
                 minLines: 3,
                 maxLines: 6,
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Content required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Content required'
+                    : null,
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _submitting ? null : _submit,
-                child: _submitting ? const CircularProgressIndicator() : const Text('Publish'),
+                child: _submitting
+                    ? const CircularProgressIndicator()
+                    : const Text('Publish'),
               ),
             ],
           ),
@@ -297,6 +358,8 @@ class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> 
     );
   }
 }
+
+// -------------------- POSTS ADMIN --------------------
 
 class _PostsAdmin extends StatefulWidget {
   final String baseUrl;
@@ -319,27 +382,34 @@ class _PostsAdminState extends State<_PostsAdmin> {
   }
 
   Future<void> _load() async {
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final uri = showApproved
-          ? Uri.parse(widget.baseUrl + '/api/content/posts')
-          : Uri.parse(widget.baseUrl + '/api/content/admin/pending-posts');
+          ? Uri.parse('${widget.baseUrl}/api/content/posts')
+          : Uri.parse('${widget.baseUrl}/api/content/admin/pending-posts');
       final res = await http.get(uri);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
-    } catch (e) {
+    } catch (_) {
       error = 'Failed to load posts';
     } finally {
-      if (mounted) setState(() { loading = false; });
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 
   Future<void> _act(String id, String status) async {
     try {
       final res = await http.put(
-        Uri.parse(widget.baseUrl + '/api/content/admin/posts/' + id + '/status'),
-        headers: { 'Content-Type': 'application/json' },
-        body: jsonEncode({ 'status': status }),
+        Uri.parse('${widget.baseUrl}/api/content/admin/posts/$id/status'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': status}),
       );
       if (res.statusCode == 200) _load();
     } catch (_) {}
@@ -355,13 +425,23 @@ class _PostsAdminState extends State<_PostsAdmin> {
             ChoiceChip(
               label: const Text('Pending'),
               selected: !showApproved,
-              onSelected: (v) { setState(() { showApproved = false; }); _load(); },
+              onSelected: (v) {
+                setState(() {
+                  showApproved = false;
+                });
+                _load();
+              },
             ),
             const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('Approved'),
               selected: showApproved,
-              onSelected: (v) { setState(() { showApproved = true; }); _load(); },
+              onSelected: (v) {
+                setState(() {
+                  showApproved = true;
+                });
+                _load();
+              },
             ),
           ],
         ),
@@ -369,37 +449,49 @@ class _PostsAdminState extends State<_PostsAdmin> {
           child: loading
               ? const Center(child: CircularProgressIndicator())
               : error != null
-                  ? Center(child: Text(error!))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final p = items[i] as Map<String, dynamic>;
-                          return ListTile(
-                            leading: const Icon(Icons.article),
-                            title: Text((p['title'] ?? '').toString()),
-                            subtitle: Text((p['author'] ?? '').toString()),
-                            trailing: showApproved
-                                ? null
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _act(p['_id'].toString(), 'approved')),
-                                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _act(p['_id'].toString(), 'rejected')),
-                                    ],
-                                  ),
-                          );
-                        },
+              ? Center(child: Text(error!))
+              : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final p = items[i] as Map<String, dynamic>;
+                return ListTile(
+                  leading: const Icon(Icons.article),
+                  title: Text((p['title'] ?? '').toString()),
+                  subtitle: Text((p['author'] ?? '').toString()),
+                  trailing: showApproved
+                      ? null
+                      : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check,
+                            color: Colors.green),
+                        onPressed: () => _act(
+                            p['_id'].toString(), 'approved'),
                       ),
-                    ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            color: Colors.red),
+                        onPressed: () => _act(
+                            p['_id'].toString(), 'rejected'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ],
     );
   }
 }
+
+// -------------------- PENDING EVENTS --------------------
 
 class _PendingEvents extends StatefulWidget {
   final String baseUrl;
@@ -421,15 +513,25 @@ class _PendingEventsState extends State<_PendingEvents> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/admin/pending-events'));
+      final res = await http.get(
+          Uri.parse('${widget.baseUrl}/api/content/admin/pending-events'));
       if (res.statusCode != 200) throw Exception('failed');
-      setState(() { _items = jsonDecode(res.body) as List<dynamic>; });
+      setState(() {
+        _items = jsonDecode(res.body) as List<dynamic>;
+      });
     } catch (_) {
-      setState(() { _error = 'Failed to load'; });
+      setState(() {
+        _error = 'Failed to load';
+      });
     } finally {
-      setState(() { _loading = false; });
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
@@ -437,8 +539,8 @@ class _PendingEventsState extends State<_PendingEvents> {
     try {
       final res = await http.put(
         Uri.parse('${widget.baseUrl}/api/content/admin/events/$id/status'),
-        headers: { 'Content-Type': 'application/json' },
-        body: jsonEncode({ 'status': status }),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': status}),
       );
       if (res.statusCode == 200) _load();
     } catch (_) {}
@@ -463,8 +565,16 @@ class _PendingEventsState extends State<_PendingEvents> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _act(e['_id'].toString(), 'approved')),
-                IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _act(e['_id'].toString(), 'rejected')),
+                IconButton(
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  onPressed: () =>
+                      _act(e['_id'].toString(), 'approved'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () =>
+                      _act(e['_id'].toString(), 'rejected'),
+                ),
               ],
             ),
           );
