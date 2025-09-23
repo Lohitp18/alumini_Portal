@@ -115,6 +115,20 @@ class _UsersAdminState extends State<_UsersAdmin> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.post_add),
+            label: const Text('Post to Institution'),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => _CreateInstitutionPostPage(baseUrl: widget.baseUrl),
+                ),
+              );
+            },
+          ),
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -163,6 +177,123 @@ class _UsersAdminState extends State<_UsersAdmin> {
                     ),
         ),
       ],
+    );
+  }
+}
+
+class _CreateInstitutionPostPage extends StatefulWidget {
+  final String baseUrl;
+  const _CreateInstitutionPostPage({required this.baseUrl});
+
+  @override
+  State<_CreateInstitutionPostPage> createState() => _CreateInstitutionPostPageState();
+}
+
+class _CreateInstitutionPostPageState extends State<_CreateInstitutionPostPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleCtrl = TextEditingController();
+  final _contentCtrl = TextEditingController();
+  String? _institution;
+  bool _submitting = false;
+
+  final List<String> _institutions = const [
+    "Alva’s Pre-University College, Vidyagiri",
+    "Alva’s Degree College, Vidyagiri",
+    "Alva’s Centre for Post Graduate Studies and Research, Vidyagiri",
+    "Alva’s College of Education, Vidyagiri",
+    "Alva’s College of Physical Education, Vidyagiri",
+    "Alva’s Institute of Engineering & Technology (AIET), Mijar",
+    "Alva’s Ayurvedic Medical College, Vidyagiri",
+    "Alva’s Homeopathic Medical College, Mijar",
+    "Alva’s College of Naturopathy and Yogic Science, Mijar",
+    "Alva’s College of Physiotherapy, Moodbidri",
+    "Alva’s College of Nursing, Moodbidri",
+    "Alva’s Institute of Nursing, Moodbidri",
+    "Alva’s College of Medical Laboratory Technology, Moodbidri",
+    "Alva’s Law College, Moodbidri",
+    "Alva’s College, Moodbidri (Affiliated with Mangalore University)",
+    "Alva’s College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
+    "Alva’s Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
+  ];
+
+  Future<Map<String, String>> _authHeaders() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer ' + token,
+    };
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _submitting = true; });
+    try {
+      final headers = await _authHeaders();
+      final res = await http.post(
+        Uri.parse(widget.baseUrl + '/api/content/institution-posts'),
+        headers: headers,
+        body: jsonEncode({
+          'institution': _institution,
+          'title': _titleCtrl.text.trim(),
+          'content': _contentCtrl.text.trim(),
+          'status': 'approved',
+        }),
+      );
+      if (res.statusCode == 201 && mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Institution post created')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ' + res.statusCode.toString())));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request failed')));
+      }
+    } finally {
+      if (mounted) setState(() { _submitting = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Post to Institution')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              DropdownButtonFormField<String>(
+                items: _institutions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) => _institution = v,
+                decoration: const InputDecoration(labelText: 'Institution'),
+                validator: (v) => v == null || v.isEmpty ? 'Select institution' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _titleCtrl,
+                decoration: const InputDecoration(labelText: 'Title'),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Title required' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _contentCtrl,
+                decoration: const InputDecoration(labelText: 'Content'),
+                minLines: 3,
+                maxLines: 6,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Content required' : null,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _submitting ? null : _submit,
+                child: _submitting ? const CircularProgressIndicator() : const Text('Publish'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

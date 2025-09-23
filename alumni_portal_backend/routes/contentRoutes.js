@@ -6,6 +6,7 @@ const {
   createOpportunity,
   getApprovedPosts,
   getApprovedInstitutionPosts,
+  createInstitutionPost,
   getPendingEvents,
   getPendingOpportunities,
   getPendingPosts,
@@ -27,6 +28,7 @@ router.get("/institution-posts", getApprovedInstitutionPosts);
 // Protected routes - create content (requires auth)
 router.post("/events", authMiddleware, uploadOptionalImage, createEvent);
 router.post("/opportunities", authMiddleware, uploadOptionalImage, createOpportunity);
+router.post("/institution-posts", authMiddleware, uploadOptionalImage, createInstitutionPost);
 
 // Admin routes - manage pending content
 router.get("/admin/pending-events", getPendingEvents);

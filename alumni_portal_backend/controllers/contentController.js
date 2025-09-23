@@ -114,6 +114,26 @@ module.exports = {
   getApprovedOpportunities: async (_req, res) => listApproved(Opportunity, res),
   getApprovedPosts: async (_req, res) => listApproved(Post, res),
   getApprovedInstitutionPosts: async (_req, res) => listApproved(InstitutionPost, res),
+  createInstitutionPost: async (req, res) => {
+    try {
+      const { institution, title, content, status } = req.body;
+      if (!institution || !title || !content) {
+        return res.status(400).json({ message: "institution, title, content are required" });
+      }
+      const data = {
+        institution,
+        title,
+        content,
+        status: status || "approved", // admin-created posts can be approved immediately
+      };
+      if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+      const post = await InstitutionPost.create(data);
+      return res.status(201).json(post);
+    } catch (err) {
+      console.error("createInstitutionPost error", err);
+      return res.status(500).json({ message: "Failed to create institution post" });
+    }
+  },
 
   getPendingEvents: async (_req, res) => {
     try {
