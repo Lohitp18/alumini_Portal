@@ -51,7 +51,6 @@ class _HomePageState extends State<HomePage> {
         throw Exception('Failed to fetch content');
       }
 
-      // Decode all responses
       List<dynamic> events = jsonDecode(responses[0].body) as List<dynamic>;
       List<dynamic> opportunities =
       jsonDecode(responses[1].body) as List<dynamic>;
@@ -59,14 +58,12 @@ class _HomePageState extends State<HomePage> {
       List<dynamic> institutionPosts =
       jsonDecode(responses[3].body) as List<dynamic>;
 
-      // Merge all posts into one list
       List<dynamic> allPosts = []
         ..addAll(events)
         ..addAll(opportunities)
         ..addAll(posts)
         ..addAll(institutionPosts);
 
-      // Optional: Sort by date or createdAt (most recent first)
       allPosts.sort((a, b) {
         DateTime dateA = DateTime.tryParse(a['date']?.toString() ??
             a['createdAt']?.toString() ??
@@ -115,94 +112,134 @@ class _HomePageState extends State<HomePage> {
         child: Stack(
           children: [
             ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _posts.length,
-          itemBuilder: (context, index) {
-            final item = _posts[index] as Map<String, dynamic>;
-            final title = (item['title'] ?? '').toString();
-            final subtitle = (item['date'] ??
-                item['company'] ??
-                item['author'] ??
-                item['institution'] ??
-                '')
-                .toString();
-            final type = item['type'] ?? item['category'] ?? 'Post';
+              padding: const EdgeInsets.all(16),
+              itemCount: _posts.length,
+              itemBuilder: (context, index) {
+                final item = _posts[index] as Map<String, dynamic>;
+                final title = (item['title'] ?? '').toString();
+                final subtitle = (item['date'] ??
+                    item['company'] ??
+                    item['author'] ??
+                    item['institution'] ??
+                    '')
+                    .toString();
+                final type = item['type'] ?? item['category'] ?? 'Post';
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          type.toString(),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                            const TextStyle(fontWeight: FontWeight.w600)),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.black54)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('You liked this post')),
-                          );
-                        },
-                        icon: const Icon(Icons.thumb_up_alt_outlined),
-                        label: const Text('Like'),
+                      // Post header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              type.toString(),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Reported. Thank you.')),
-                          );
-                        },
-                        icon: const Icon(Icons.flag_outlined, color: Colors.red),
-                        label: const Text('Report'),
+
+                      const SizedBox(height: 8),
+
+                      // Subtitle (date/author/institution/etc.)
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.black54, fontSize: 12),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Post content
+                      if (item['content'] != null &&
+                          item['content'].toString().isNotEmpty)
+                        Text(
+                          item['content'],
+                          style: const TextStyle(fontSize: 14),
+                        ),
+
+                      const SizedBox(height: 8),
+
+                      // Show first image if exists
+                      if (item['images'] != null &&
+                          item['images'] is List &&
+                          (item['images'] as List).isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            item['images'][0],
+                            fit: BoxFit.cover,
+                            height: 200,
+                            width: double.infinity,
+                          ),
+                        ),
+
+                      const SizedBox(height: 8),
+
+                      // Action buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('You liked this post')),
+                              );
+                            },
+                            icon: const Icon(Icons.thumb_up_alt_outlined,
+                                size: 18),
+                            label: const Text('Like'),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Reported. Thank you.')),
+                              );
+                            },
+                            icon: const Icon(Icons.flag_outlined,
+                                color: Colors.red, size: 18),
+                            label: const Text('Report'),
+                          ),
+                        ],
                       ),
                     ],
-                  )
-                ],
-              ),
-            );
-          },
+                  ),
+                );
+              },
             ),
             Positioned(
               right: 16,
@@ -239,7 +276,8 @@ class _CreatePostPage extends StatefulWidget {
 }
 
 class _CreatePostPageState extends State<_CreatePostPage> {
-  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  final String _baseUrl = const String.fromEnvironment('API_BASE_URL',
+      defaultValue: 'http://10.0.2.2:5000');
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
@@ -247,9 +285,12 @@ class _CreatePostPageState extends State<_CreatePostPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; });
+    setState(() {
+      _loading = true;
+    });
     try {
-      final token = await const FlutterSecureStorage().read(key: 'auth_token') ?? '';
+      final token =
+          await const FlutterSecureStorage().read(key: 'auth_token') ?? '';
       final res = await http.post(
         Uri.parse('$_baseUrl/api/posts'),
         headers: {
@@ -263,20 +304,23 @@ class _CreatePostPageState extends State<_CreatePostPage> {
       );
       if (res.statusCode == 201) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post submitted for verification')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Post submitted for verification')));
           Navigator.pop(context);
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${res.statusCode}')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed: ${res.statusCode}')));
         }
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Network error')));
       }
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -292,13 +336,15 @@ class _CreatePostPageState extends State<_CreatePostPage> {
             children: [
               TextFormField(
                 controller: _titleCtrl,
-                decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Title', border: OutlineInputBorder()),
                 validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _contentCtrl,
-                decoration: const InputDecoration(labelText: 'Content', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Content', border: OutlineInputBorder()),
                 maxLines: 5,
                 validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
@@ -307,7 +353,9 @@ class _CreatePostPageState extends State<_CreatePostPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
-                  child: _loading ? const CircularProgressIndicator() : const Text('Submit'),
+                  child: _loading
+                      ? const CircularProgressIndicator()
+                      : const Text('Submit'),
                 ),
               )
             ],
