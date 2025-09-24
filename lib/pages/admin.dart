@@ -94,8 +94,8 @@ class _UsersAdminState extends State<_UsersAdmin> {
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/admin/approved-users')
-          : Uri.parse('${widget.baseUrl}/admin/users');
+          ? Uri.parse('${widget.baseUrl}/api/admin/approved-users')
+          : Uri.parse('${widget.baseUrl}/api/admin/users');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -114,7 +114,7 @@ class _UsersAdminState extends State<_UsersAdmin> {
     try {
       final headers = await _authHeaders();
       final res = await http.patch(
-        Uri.parse('${widget.baseUrl}/admin/$action/$id'),
+        Uri.parse('${widget.baseUrl}/api/admin/$action/$id'),
         headers: headers,
       );
       if (res.statusCode == 200) _load();
@@ -388,8 +388,8 @@ class _PostsAdminState extends State<_PostsAdmin> {
     });
     try {
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/api/content/posts')
-          : Uri.parse('${widget.baseUrl}/api/content/admin/pending-posts');
+          ? Uri.parse('${widget.baseUrl}/api/admin/approved-posts')
+          : Uri.parse('${widget.baseUrl}/api/admin/pending-posts');
       final res = await http.get(uri);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -407,7 +407,7 @@ class _PostsAdminState extends State<_PostsAdmin> {
   Future<void> _act(String id, String status) async {
     try {
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/posts/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/admin/posts/$id/status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': status}),
       );
@@ -519,7 +519,7 @@ class _PendingEventsState extends State<_PendingEvents> {
     });
     try {
       final res = await http.get(
-          Uri.parse('${widget.baseUrl}/api/content/admin/pending-events'));
+          Uri.parse('${widget.baseUrl}/api/admin/pending-events'));
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
@@ -538,7 +538,7 @@ class _PendingEventsState extends State<_PendingEvents> {
   Future<void> _act(String id, String status) async {
     try {
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/events/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/admin/events/$id/status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': status}),
       );
@@ -606,7 +606,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/admin/pending-opportunities'));
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/admin/pending-opportunities'));
       if (res.statusCode != 200) throw Exception('failed');
       setState(() { _items = jsonDecode(res.body) as List<dynamic>; });
     } catch (_) {
@@ -619,7 +619,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
   Future<void> _act(String id, String status) async {
     try {
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/opportunities/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/admin/opportunities/$id/status'),
         headers: { 'Content-Type': 'application/json' },
         body: jsonEncode({ 'status': status }),
       );
