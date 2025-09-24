@@ -128,7 +128,7 @@ class _HomePageState extends State<HomePage> {
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -143,20 +143,36 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Professional post header with user info
-                      _buildProfessionalPostHeader(item, type),
+                      // Post header with user info (clickable)
+                      _buildUserInfoHeader(item),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
-                      // Post title
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
+                      // Post header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              type.toString(),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 8),
@@ -167,12 +183,10 @@ class _HomePageState extends State<HomePage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                        ),
+                            color: Colors.black54, fontSize: 12),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // Post content
                       if (item['content'] != null &&
@@ -182,7 +196,7 @@ class _HomePageState extends State<HomePage> {
                           style: const TextStyle(fontSize: 14),
                         ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // Show first image if exists
                       if (item['images'] != null &&
@@ -198,7 +212,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // Action buttons
                       Row(
@@ -241,7 +255,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _buildProfessionalPostHeader(Map<String, dynamic> item, String type) {
+  Widget _buildUserInfoHeader(Map<String, dynamic> item) {
     // Get user information from the populated data
     final author = item['authorId'] ?? item['postedBy'];
     final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
@@ -253,51 +267,31 @@ class _HomePageState extends State<HomePage> {
         GestureDetector(
           onTap: () => _navigateToUserProfile(author?['_id']),
           child: CircleAvatar(
-            radius: 20,
+            radius: 16,
             backgroundColor: Colors.grey.shade300,
             backgroundImage: authorImage != null 
                 ? NetworkImage(authorImage) 
                 : null,
             child: authorImage == null 
-                ? const Icon(Icons.person, color: Colors.grey, size: 20)
+                ? const Icon(Icons.person, color: Colors.grey, size: 16)
                 : null,
           ),
         ),
         
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         
         // User name (clickable)
-        Expanded(
-          child: GestureDetector(
-            onTap: () => _navigateToUserProfile(author?['_id']),
-            child: Text(
-              authorName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: Colors.black87,
-              ),
+        GestureDetector(
+          onTap: () => _navigateToUserProfile(author?['_id']),
+          child: Text(
+            authorName,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+              color: Colors.black87,
             ),
           ),
         ),
-        
-        // Post type badge
-        if (type.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade100,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              type,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade700,
-              ),
-            ),
-          ),
       ],
     );
   }
