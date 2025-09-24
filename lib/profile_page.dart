@@ -20,11 +20,14 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _userProfile;
   bool _loading = true;
   String? _error;
+  bool _loadingPosts = true;
+  List<dynamic> _myPosts = [];
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadMyPosts();
   }
 
   Future<void> _loadProfile() async {
@@ -102,6 +105,117 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _loadMyPosts() async {
+    setState(() { _loadingPosts = true; });
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) throw Exception('Authentication required');
+
+      final res = await http.get(
+        Uri.parse('$_baseUrl/api/posts/mine'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (res.statusCode != 200) throw Exception('Failed');
+      setState(() {
+        _myPosts = jsonDecode(res.body) as List<dynamic>;
+      });
+    } catch (_) {
+      // keep silent; section will show empty/error state
+    } finally {
+      if (mounted) setState(() { _loadingPosts = false; });
+    }
+  }
+
+  Future<void> _deletePost(String postId) async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) throw Exception('Authentication required');
+      final res = await http.delete(
+        Uri.parse('$_baseUrl/api/posts/$postId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (res.statusCode == 200) {
+        setState(() { _myPosts.removeWhere((p) => p['_id'] == postId); });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post deleted')));
+      } else {
+        throw Exception('Failed');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+    }
+  }
+
+  void _showEditPostDialog(Map<String, dynamic> post) {
+    final titleCtrl = TextEditingController(text: post['title'] ?? '');
+    final contentCtrl = TextEditingController(text: post['content'] ?? '');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Post'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: contentCtrl,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: 'Content', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                const storage = FlutterSecureStorage();
+                final token = await storage.read(key: 'auth_token');
+                if (token == null || token.isEmpty) throw Exception('Authentication required');
+                final res = await http.put(
+                  Uri.parse('$_baseUrl/api/posts/${post['_id']}'),
+                  headers: {
+                    'Authorization': 'Bearer $token',
+                    'Content-Type': 'application/json',
+                  },
+                  body: jsonEncode({
+                    'title': titleCtrl.text.trim(),
+                    'content': contentCtrl.text.trim(),
+                  }),
+                );
+                if (res.statusCode == 200) {
+                  final updated = jsonDecode(res.body) as Map<String, dynamic>;
+                  final idx = _myPosts.indexWhere((p) => p['_id'] == post['_id']);
+                  if (idx != -1) {
+                    setState(() { _myPosts[idx] = updated; });
+                  }
+                  if (mounted) Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post updated (pending approval)')));
+                } else {
+                  throw Exception('Failed');
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -154,6 +268,7 @@ class _ProfilePageState extends State<ProfilePage> {
               _buildEducationSection(),
               _buildSkillsSection(),
               _buildConnectionsSection(),
+              _buildMyPostsSection(),
             ],
           ),
         ),
@@ -476,6 +591,64 @@ class _ProfilePageState extends State<ProfilePage> {
             MaterialPageRoute(builder: (_) => const ConnectionsPage()),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildMyPostsSection() {
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('My Posts', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadMyPosts,
+                  tooltip: 'Refresh',
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_loadingPosts)
+              const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()))
+            else if (_myPosts.isEmpty)
+              const Text('You have not posted anything yet.', style: TextStyle(color: Colors.black54))
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _myPosts.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, i) {
+                  final p = _myPosts[i] as Map<String, dynamic>;
+                  return ListTile(
+                    leading: const Icon(Icons.article),
+                    title: Text((p['title'] ?? '').toString()),
+                    subtitle: Text('Status: ${p['status'] ?? 'pending'}'),
+                    trailing: Wrap(
+                      spacing: 8,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showEditPostDialog(p),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deletePost(p['_id'].toString()),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }

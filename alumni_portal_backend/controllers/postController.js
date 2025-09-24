@@ -143,4 +143,65 @@ exports.reportPost = async (req, res) => {
   }
 };
 
+// Get posts created by the authenticated user
+exports.getMyPosts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const posts = await Post.find({ authorId: userId })
+      .sort({ createdAt: -1 });
+    return res.json(posts);
+  } catch (err) {
+    console.error('getMyPosts error', err);
+    return res.status(500).json({ message: 'Failed to fetch posts' });
+  }
+};
+
+// Update a post (only by owner). Allows title/content and optional image replacement
+exports.updatePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+    const { title, content } = req.body;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.authorId?.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    if (typeof title === 'string') post.title = title.trim();
+    if (typeof content === 'string') post.content = content.trim();
+    if (req.file) post.imageUrl = `/uploads/${req.file.filename}`;
+
+    // Changing content moves it back to pending for re-approval
+    post.status = 'pending';
+
+    await post.save();
+    return res.json(post);
+  } catch (err) {
+    console.error('updatePost error', err);
+    return res.status(500).json({ message: 'Failed to update post' });
+  }
+};
+
+// Delete a post (only by owner)
+exports.deletePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.authorId?.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    await Post.findByIdAndDelete(postId);
+    return res.json({ message: 'Post deleted' });
+  } catch (err) {
+    console.error('deletePost error', err);
+    return res.status(500).json({ message: 'Failed to delete post' });
+  }
+};
+
 

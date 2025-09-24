@@ -75,8 +75,15 @@ const listApproved = async (Model, res, userId = null) => {
       const postObj = post.toObject();
       postObj.isLiked = userId ? post.likes.includes(userId) : false;
       postObj.likeCount = post.likes.length;
+      postObj.category = 'Post';
       return postObj;
     });
+  } else if (Model.modelName === 'Event') {
+    items = items.map(e => ({ ...e.toObject(), category: 'Event' }));
+  } else if (Model.modelName === 'Opportunity') {
+    items = items.map(o => ({ ...o.toObject(), category: 'Opportunity' }));
+  } else if (Model.modelName === 'InstitutionPost') {
+    items = items.map(ip => ({ ...ip.toObject(), category: 'InstitutionPost' }));
   }
   
   return res.json(items);

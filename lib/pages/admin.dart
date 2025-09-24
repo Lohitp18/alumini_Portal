@@ -404,8 +404,8 @@ class _PostsAdminState extends State<_PostsAdmin> {
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/api/admin/approved-posts')
-          : Uri.parse('${widget.baseUrl}/api/admin/pending-posts');
+          ? Uri.parse('${widget.baseUrl}/api/content/admin/approved-posts')
+          : Uri.parse('${widget.baseUrl}/api/content/admin/pending-posts');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -424,7 +424,7 @@ class _PostsAdminState extends State<_PostsAdmin> {
     try {
       final headers = await _authHeaders();
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/admin/posts/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/admin/posts/$id/status'),
         headers: headers,
         body: jsonEncode({'status': status}),
       );
@@ -542,7 +542,7 @@ class _PendingEventsState extends State<_PendingEvents> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.get(
-          Uri.parse('${widget.baseUrl}/api/admin/pending-events'), headers: headers);
+          Uri.parse('${widget.baseUrl}/api/content/admin/pending-events'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
@@ -567,7 +567,7 @@ class _PendingEventsState extends State<_PendingEvents> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/admin/events/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/admin/events/$id/status'),
         headers: headers,
         body: jsonEncode({'status': status}),
       );
@@ -641,7 +641,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       };
-      final res = await http.get(Uri.parse('${widget.baseUrl}/api/admin/pending-opportunities'), headers: headers);
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/admin/pending-opportunities'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() { _items = jsonDecode(res.body) as List<dynamic>; });
     } catch (_) {
@@ -660,7 +660,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/admin/opportunities/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/admin/opportunities/$id/status'),
         headers: headers,
         body: jsonEncode({ 'status': status }),
       );

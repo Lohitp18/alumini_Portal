@@ -128,7 +128,7 @@ class _HomePageState extends State<HomePage> {
                     item['institution'] ??
                     '')
                     .toString();
-                final type = item['type'] ?? item['category'] ?? 'Post';
+                final type = item['category'] ?? item['type'] ?? 'Post';
 
                 return Card(
   margin: const EdgeInsets.only(bottom: 16),
@@ -227,13 +227,16 @@ class _HomePageState extends State<HomePage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _LikeButton(
-              postId: item['_id'],
-              baseUrl: _baseUrl,
-              initialLiked: item['isLiked'] ?? false,
-              initialLikeCount:
-                  item['likeCount'] ?? item['likes']?.length ?? 0,
-            ),
+            if ((item['category'] ?? item['type'] ?? 'Post') == 'Post')
+              _LikeButton(
+                postId: item['_id'],
+                baseUrl: _baseUrl,
+                initialLiked: item['isLiked'] ?? false,
+                initialLikeCount:
+                    item['likeCount'] ?? item['likes']?.length ?? 0,
+              )
+            else
+              const SizedBox.shrink(),
             if (item['applyLink'] != null && item['applyLink'].toString().isNotEmpty)
               TextButton.icon(
                 onPressed: () async {
@@ -246,10 +249,12 @@ class _HomePageState extends State<HomePage> {
                 icon: const Icon(Icons.launch),
                 label: const Text('Apply'),
               ),
-            _ReportButton(
-              postId: item['_id'],
-              baseUrl: _baseUrl,
-            ),
+            if ((item['category'] ?? item['type'] ?? 'Post') == 'Post') ...[
+              _ReportButton(
+                postId: item['_id'],
+                baseUrl: _baseUrl,
+              ),
+            ],
           ],
         ),
       ],
