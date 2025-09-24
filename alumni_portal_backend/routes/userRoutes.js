@@ -4,7 +4,8 @@ const {
   getProfile, 
   updateProfile, 
   updatePrivacySettings, 
-  changePassword 
+  changePassword,
+  getUserById
 } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
@@ -12,6 +13,7 @@ const router = express.Router();
 
 // Public routes
 router.get("/approved", getApprovedAlumni);
+router.get("/:id", getUserById); // Get user profile by ID (public, but respects privacy settings)
 
 // Protected routes (require authentication)
 router.get("/profile", authMiddleware, getProfile);

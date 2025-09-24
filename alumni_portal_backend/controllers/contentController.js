@@ -52,10 +52,16 @@ const listApproved = async (Model, res, userId = null) => {
   
   // For posts, get all posts (approved and pending) for home page
   if (Model.modelName === 'Post') {
-    items = await Model.find({}).sort({ createdAt: -1 }).limit(50);
+    items = await Model.find({})
+      .populate('authorId', 'name profileImage headline')
+      .sort({ createdAt: -1 })
+      .limit(50);
   } else {
     // For other content types, only show approved
-    items = await Model.find({ status: "approved" }).sort({ createdAt: -1 }).limit(50);
+    items = await Model.find({ status: "approved" })
+      .populate('postedBy', 'name profileImage headline')
+      .sort({ createdAt: -1 })
+      .limit(50);
   }
   
   // For posts, add like information

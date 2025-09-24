@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'user_profile_view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -127,7 +128,6 @@ class _HomePageState extends State<HomePage> {
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -142,62 +142,29 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Post header
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              type.toString(),
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Subtitle (date/author/institution/etc.)
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.black54, fontSize: 12),
-                      ),
-
-                      const SizedBox(height: 8),
-
+                      // LinkedIn-like post header with user info
+                      _buildPostHeader(item, type),
+                      
                       // Post content
                       if (item['content'] != null &&
                           item['content'].toString().isNotEmpty)
-                        Text(
-                          item['content'],
-                          style: const TextStyle(fontSize: 14),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Text(
+                            item['content'],
+                            style: const TextStyle(fontSize: 14),
+                          ),
                         ),
-
-                      const SizedBox(height: 8),
 
                       // Show first image if exists
                       if (item['images'] != null &&
                           item['images'] is List &&
                           (item['images'] as List).isNotEmpty)
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          ),
                           child: Image.network(
                             item['images'][0],
                             fit: BoxFit.cover,
@@ -206,23 +173,24 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
 
-                      const SizedBox(height: 8),
-
                       // Action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _LikeButton(
-                            postId: item['_id'],
-                            baseUrl: _baseUrl,
-                            initialLiked: item['isLiked'] ?? false,
-                            initialLikeCount: item['likeCount'] ?? item['likes']?.length ?? 0,
-                          ),
-                          _ReportButton(
-                            postId: item['_id'],
-                            baseUrl: _baseUrl,
-                          ),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _LikeButton(
+                              postId: item['_id'],
+                              baseUrl: _baseUrl,
+                              initialLiked: item['isLiked'] ?? false,
+                              initialLikeCount: item['likeCount'] ?? item['likes']?.length ?? 0,
+                            ),
+                            _ReportButton(
+                              postId: item['_id'],
+                              baseUrl: _baseUrl,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -246,6 +214,194 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       );
+    }
+  }
+
+  Widget _buildPostHeader(Map<String, dynamic> item, String type) {
+    // Get user information from the populated data
+    final author = item['authorId'] ?? item['postedBy'];
+    final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
+    final authorHeadline = author?['headline'] ?? '';
+    final authorImage = author?['profileImage'];
+    
+    // Get post timestamp
+    final createdAt = item['createdAt'] ?? item['date'];
+    final timeAgo = _getTimeAgo(createdAt);
+    
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // Profile picture
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(author?['_id']),
+            child: CircleAvatar(
+              radius: 24,
+              backgroundColor: Colors.grey.shade300,
+              backgroundImage: authorImage != null 
+                  ? NetworkImage(authorImage) 
+                  : null,
+              child: authorImage == null 
+                  ? const Icon(Icons.person, color: Colors.grey)
+                  : null,
+            ),
+          ),
+          
+          const SizedBox(width: 12),
+          
+          // User info and post details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User name (clickable)
+                GestureDetector(
+                  onTap: () => _navigateToUserProfile(author?['_id']),
+                  child: Text(
+                    authorName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                
+                // User headline and time
+                Row(
+                  children: [
+                    if (authorHeadline.isNotEmpty) ...[
+                      Text(
+                        authorHeadline,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const Text(' • ', style: TextStyle(color: Colors.black54)),
+                    ],
+                    Text(
+                      timeAgo,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Post type badge
+                if (type.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      type,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          // More options button
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.grey),
+            onPressed: () => _showPostOptions(item),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToUserProfile(String? userId) {
+    if (userId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => UserProfileViewPage(userId: userId),
+        ),
+      );
+    }
+  }
+
+  void _showPostOptions(Map<String, dynamic> item) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.bookmark_border),
+              title: const Text('Save Post'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Post saved!')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share Post'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Share feature coming soon!')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Copy Link'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Link copied!')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getTimeAgo(dynamic timestamp) {
+    if (timestamp == null) return 'Just now';
+    
+    try {
+      DateTime dateTime;
+      if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else {
+        dateTime = timestamp;
+      }
+      
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+      
+      if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return 'Just now';
     }
   }
 

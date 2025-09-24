@@ -98,6 +98,28 @@ exports.updatePrivacySettings = async (req, res) => {
   }
 };
 
+// GET /api/users/:id - Get user profile by ID
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check privacy settings
+    if (user.privacySettings?.profileVisibility === 'private') {
+      return res.status(403).json({ message: 'Profile is private' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // PUT /api/users/change-password - Change password
 exports.changePassword = async (req, res) => {
   try {
