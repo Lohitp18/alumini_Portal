@@ -260,40 +260,73 @@ class _HomePageState extends State<HomePage> {
     final author = item['authorId'] ?? item['postedBy'];
     final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
     final authorImage = author?['profileImage'];
+    final authorId = author?['_id'];
     
-    return Row(
-      children: [
-        // Profile picture (clickable)
-        GestureDetector(
-          onTap: () => _navigateToUserProfile(author?['_id']),
-          child: CircleAvatar(
+    // For InstitutionPost, show institution name instead of user
+    if (item['institution'] != null) {
+      return Row(
+        children: [
+          // Institution icon
+          CircleAvatar(
             radius: 16,
-            backgroundColor: Colors.grey.shade300,
-            backgroundImage: authorImage != null 
-                ? NetworkImage(authorImage) 
-                : null,
-            child: authorImage == null 
-                ? const Icon(Icons.person, color: Colors.grey, size: 16)
-                : null,
+            backgroundColor: Colors.blue.shade100,
+            child: const Icon(Icons.school, color: Colors.blue, size: 16),
           ),
-        ),
-        
-        const SizedBox(width: 8),
-        
-        // User name (clickable)
-        GestureDetector(
-          onTap: () => _navigateToUserProfile(author?['_id']),
-          child: Text(
-            authorName,
+          
+          const SizedBox(width: 8),
+          
+          // Institution name
+          Text(
+            item['institution'],
             style: const TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: 13,
               color: Colors.black87,
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    }
+    
+    // For regular posts with user information
+    if (authorId != null) {
+      return Row(
+        children: [
+          // Profile picture (clickable)
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(authorId),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey.shade300,
+              backgroundImage: authorImage != null 
+                  ? NetworkImage(authorImage) 
+                  : null,
+              child: authorImage == null 
+                  ? const Icon(Icons.person, color: Colors.grey, size: 16)
+                  : null,
+            ),
+          ),
+          
+          const SizedBox(width: 8),
+          
+          // User name (clickable)
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(authorId),
+            child: Text(
+              authorName,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // Fallback for posts without user information
+    return const SizedBox.shrink();
   }
 
   void _navigateToUserProfile(String? userId) {

@@ -56,8 +56,13 @@ const listApproved = async (Model, res, userId = null) => {
       .populate('authorId', 'name profileImage headline')
       .sort({ createdAt: -1 })
       .limit(50);
+  } else if (Model.modelName === 'InstitutionPost') {
+    // InstitutionPost doesn't have postedBy field
+    items = await Model.find({ status: "approved" })
+      .sort({ createdAt: -1 })
+      .limit(50);
   } else {
-    // For other content types, only show approved
+    // For other content types (Event, Opportunity), only show approved
     items = await Model.find({ status: "approved" })
       .populate('postedBy', 'name profileImage headline')
       .sort({ createdAt: -1 })
