@@ -128,6 +128,7 @@ class _HomePageState extends State<HomePage> {
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -142,29 +143,53 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // LinkedIn-like post header with user info
-                      _buildPostHeader(item, type),
-                      
+                      // Professional post header with user info
+                      _buildProfessionalPostHeader(item, type),
+
+                      const SizedBox(height: 12),
+
+                      // Post title
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Subtitle (date/author/institution/etc.)
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 14,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
                       // Post content
                       if (item['content'] != null &&
                           item['content'].toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: Text(
-                            item['content'],
-                            style: const TextStyle(fontSize: 14),
-                          ),
+                        Text(
+                          item['content'],
+                          style: const TextStyle(fontSize: 14),
                         ),
+
+                      const SizedBox(height: 12),
 
                       // Show first image if exists
                       if (item['images'] != null &&
                           item['images'] is List &&
                           (item['images'] as List).isNotEmpty)
                         ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
-                          ),
+                          borderRadius: BorderRadius.circular(8),
                           child: Image.network(
                             item['images'][0],
                             fit: BoxFit.cover,
@@ -173,24 +198,23 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
 
+                      const SizedBox(height: 12),
+
                       // Action buttons
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _LikeButton(
-                              postId: item['_id'],
-                              baseUrl: _baseUrl,
-                              initialLiked: item['isLiked'] ?? false,
-                              initialLikeCount: item['likeCount'] ?? item['likes']?.length ?? 0,
-                            ),
-                            _ReportButton(
-                              postId: item['_id'],
-                              baseUrl: _baseUrl,
-                            ),
-                          ],
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _LikeButton(
+                            postId: item['_id'],
+                            baseUrl: _baseUrl,
+                            initialLiked: item['isLiked'] ?? false,
+                            initialLikeCount: item['likeCount'] ?? item['likes']?.length ?? 0,
+                          ),
+                          _ReportButton(
+                            postId: item['_id'],
+                            baseUrl: _baseUrl,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -217,108 +241,64 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _buildPostHeader(Map<String, dynamic> item, String type) {
+  Widget _buildProfessionalPostHeader(Map<String, dynamic> item, String type) {
     // Get user information from the populated data
     final author = item['authorId'] ?? item['postedBy'];
     final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
-    final authorHeadline = author?['headline'] ?? '';
     final authorImage = author?['profileImage'];
     
-    // Get post timestamp
-    final createdAt = item['createdAt'] ?? item['date'];
-    final timeAgo = _getTimeAgo(createdAt);
-    
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          // Profile picture
-          GestureDetector(
+    return Row(
+      children: [
+        // Profile picture (clickable)
+        GestureDetector(
+          onTap: () => _navigateToUserProfile(author?['_id']),
+          child: CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.grey.shade300,
+            backgroundImage: authorImage != null 
+                ? NetworkImage(authorImage) 
+                : null,
+            child: authorImage == null 
+                ? const Icon(Icons.person, color: Colors.grey, size: 20)
+                : null,
+          ),
+        ),
+        
+        const SizedBox(width: 12),
+        
+        // User name (clickable)
+        Expanded(
+          child: GestureDetector(
             onTap: () => _navigateToUserProfile(author?['_id']),
-            child: CircleAvatar(
-              radius: 24,
-              backgroundColor: Colors.grey.shade300,
-              backgroundImage: authorImage != null 
-                  ? NetworkImage(authorImage) 
-                  : null,
-              child: authorImage == null 
-                  ? const Icon(Icons.person, color: Colors.grey)
-                  : null,
+            child: Text(
+              authorName,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.black87,
+              ),
             ),
           ),
-          
-          const SizedBox(width: 12),
-          
-          // User info and post details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // User name (clickable)
-                GestureDetector(
-                  onTap: () => _navigateToUserProfile(author?['_id']),
-                  child: Text(
-                    authorName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                
-                // User headline and time
-                Row(
-                  children: [
-                    if (authorHeadline.isNotEmpty) ...[
-                      Text(
-                        authorHeadline,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const Text(' • ', style: TextStyle(color: Colors.black54)),
-                    ],
-                    Text(
-                      timeAgo,
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // Post type badge
-                if (type.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      type,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+        ),
+        
+        // Post type badge
+        if (type.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              type,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade700,
+              ),
             ),
           ),
-          
-          // More options button
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.grey),
-            onPressed: () => _showPostOptions(item),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -333,77 +313,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _showPostOptions(Map<String, dynamic> item) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.bookmark_border),
-              title: const Text('Save Post'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Post saved!')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Share Post'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share feature coming soon!')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copy Link'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Link copied!')),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getTimeAgo(dynamic timestamp) {
-    if (timestamp == null) return 'Just now';
-    
-    try {
-      DateTime dateTime;
-      if (timestamp is String) {
-        dateTime = DateTime.parse(timestamp);
-      } else {
-        dateTime = timestamp;
-      }
-      
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-      
-      if (difference.inDays > 0) {
-        return '${difference.inDays}d ago';
-      } else if (difference.inHours > 0) {
-        return '${difference.inHours}h ago';
-      } else if (difference.inMinutes > 0) {
-        return '${difference.inMinutes}m ago';
-      } else {
-        return 'Just now';
-      }
-    } catch (e) {
-      return 'Just now';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
