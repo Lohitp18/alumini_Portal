@@ -32,28 +32,58 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
     "Alva’s Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
   ];
 
+  String _query = '';
+
   @override
   Widget build(BuildContext context) {
+    final List<String> filtered = _institutions
+        .where((i) => i.toLowerCase().contains(_query.toLowerCase()))
+        .toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Institutions')),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemBuilder: (_, i) {
-          final name = _institutions[i];
-          return ListTile(
-            leading: const Icon(Icons.school),
-            title: Text(name),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => InstitutionDetailPage(institutionName: name)),
-              );
-            },
-          );
-        },
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemCount: _institutions.length,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              decoration: const InputDecoration(
+                labelText: 'Search institutions',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) => setState(() { _query = v; }),
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 1,
+                childAspectRatio: 3.4,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: filtered.length,
+              itemBuilder: (_, i) {
+                final name = filtered[i];
+                return Card(
+                  child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.school)),
+                    title: Text(name, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => InstitutionDetailPage(institutionName: name)),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -113,46 +143,51 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                       final content = (m['content'] ?? m['description'] ?? '').toString();
                       final imageUrl = (m['imageUrl'] ?? '').toString();
                       final videoUrl = (m['videoUrl'] ?? '').toString();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 8),
-                          if (imageUrl.isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                imageUrl.startsWith('http') ? imageUrl : '$_baseUrl$imageUrl',
-                                height: 180,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          if (videoUrl.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              height: 160,
-                              decoration: BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              alignment: Alignment.center,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.play_circle_outline, size: 48),
-                                  const SizedBox(height: 8),
-                                  Text(videoUrl, style: const TextStyle(color: Colors.black54)),
-                                ],
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          Text(content),
-                        ],
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              if (imageUrl.isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    imageUrl.startsWith('http') ? imageUrl : '$_baseUrl$imageUrl',
+                                    height: 180,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              if (videoUrl.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  height: 160,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black12,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.play_circle_outline, size: 48),
+                                      const SizedBox(height: 8),
+                                      Text(videoUrl, style: const TextStyle(color: Colors.black54)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              Text(content),
+                            ],
+                          ),
+                        ),
                       );
                     },
-                    separatorBuilder: (_, __) => const Divider(height: 24),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemCount: _posts.length,
                   ),
                 ),

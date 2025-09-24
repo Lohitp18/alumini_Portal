@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
 
@@ -63,9 +64,16 @@ class _PostOpportunityPageState extends State<PostOpportunityPage> {
         request.fields['type'] = _typeController.text.trim();
         request.fields['status'] = 'pending'; // Set as pending for admin approval
 
-        // Add image
+        // Add image with content type
+        final filePath = _selectedImage!.path;
+        final extension = filePath.split('.').last.toLowerCase();
+        final subtype = (extension == 'jpg') ? 'jpeg' : extension;
         request.files.add(
-          await http.MultipartFile.fromPath('image', _selectedImage!.path),
+          await http.MultipartFile.fromPath(
+            'image',
+            filePath,
+            contentType: MediaType('image', subtype),
+          ),
         );
 
         // Add auth token
@@ -248,13 +256,23 @@ class _PostOpportunityPageState extends State<PostOpportunityPage> {
               ),
               const SizedBox(height: 16),
 
-              // Apply Link field
+              // Apply Link field (mandatory URL)
               TextFormField(
                 controller: _applyLinkController,
                 decoration: const InputDecoration(
-                  labelText: 'Apply Link (optional)',
+                  labelText: 'Apply Link * (https://...)',
                   border: OutlineInputBorder(),
                 ),
+                keyboardType: TextInputType.url,
+                validator: (value) {
+                  final v = value?.trim() ?? '';
+                  if (v.isEmpty) return 'Apply link is required';
+                  final uri = Uri.tryParse(v);
+                  if (uri == null || (!uri.isScheme("http") && !uri.isScheme("https"))) {
+                    return 'Enter a valid URL (http/https)';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 

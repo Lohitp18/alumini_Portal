@@ -36,6 +36,8 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
         title: const Text('Admin Dashboard'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Users'),
             Tab(text: 'Posts'),
@@ -126,90 +128,94 @@ class _UsersAdminState extends State<_UsersAdmin> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.post_add),
-            label: const Text('Post to Institution'),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      _CreateInstitutionPostPage(baseUrl: widget.baseUrl),
-                ),
+          padding: const EdgeInsets.all(16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _StatCard(label: showApproved ? 'Approved' : 'Pending', value: items.length),
+                  ChoiceChip(
+                    label: const Text('Pending'),
+                    selected: !showApproved,
+                    onSelected: (v) { setState(() { showApproved = false; }); _load(); },
+                  ),
+                  ChoiceChip(
+                    label: const Text('Approved'),
+                    selected: showApproved,
+                    onSelected: (v) { setState(() { showApproved = true; }); _load(); },
+                  ),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.post_add),
+                    label: const Text('Post to Institution'),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => _CreateInstitutionPostPage(baseUrl: widget.baseUrl),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               );
             },
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ChoiceChip(
-              label: const Text('Pending'),
-              selected: !showApproved,
-              onSelected: (v) {
-                setState(() {
-                  showApproved = false;
-                });
-                _load();
-              },
-            ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              label: const Text('Approved'),
-              selected: showApproved,
-              onSelected: (v) {
-                setState(() {
-                  showApproved = true;
-                });
-                _load();
-              },
-            ),
-          ],
         ),
         Expanded(
           child: loading
               ? const Center(child: CircularProgressIndicator())
               : error != null
-              ? Center(child: Text(error!))
-              : RefreshIndicator(
-            onRefresh: _load,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (_, i) {
-                final u = items[i] as Map<String, dynamic>;
-                return ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(
-                    (u['name'] ?? u['email'] ?? '').toString(),
-                  ),
-                  subtitle: Text((u['email'] ?? '').toString()),
-                  trailing: showApproved
-                      ? null
-                      : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.check,
-                            color: Colors.green),
-                        onPressed: () =>
-                            _act(u['_id'].toString(), 'approve'),
+                  ? Center(child: Text(error!))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) {
+                          final u = items[i] as Map<String, dynamic>;
+                          return Card(
+                            child: ListTile(
+                              leading: const CircleAvatar(child: Icon(Icons.person)),
+                              title: Text((u['name'] ?? u['email'] ?? '').toString()),
+                              subtitle: Text((u['email'] ?? '').toString()),
+                              trailing: showApproved
+                                  ? null
+                                  : Wrap(spacing: 4, children: [
+                                      IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _act(u['_id'].toString(), 'approve')),
+                                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _act(u['_id'].toString(), 'reject')),
+                                    ]),
+                            ),
+                          );
+                        },
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            color: Colors.red),
-                        onPressed: () =>
-                            _act(u['_id'].toString(), 'reject'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
+                    ),
         ),
       ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final int value;
+  const _StatCard({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            const SizedBox(height: 4),
+            Text(value.toString(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -375,6 +381,15 @@ class _PostsAdminState extends State<_PostsAdmin> {
   bool showApproved = false;
   List<dynamic> items = [];
 
+  Future<Map<String, String>> _authHeaders() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -387,10 +402,11 @@ class _PostsAdminState extends State<_PostsAdmin> {
       error = null;
     });
     try {
+      final headers = await _authHeaders();
       final uri = showApproved
           ? Uri.parse('${widget.baseUrl}/api/admin/approved-posts')
           : Uri.parse('${widget.baseUrl}/api/admin/pending-posts');
-      final res = await http.get(uri);
+      final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
     } catch (_) {
@@ -406,9 +422,10 @@ class _PostsAdminState extends State<_PostsAdmin> {
 
   Future<void> _act(String id, String status) async {
     try {
+      final headers = await _authHeaders();
       final res = await http.put(
         Uri.parse('${widget.baseUrl}/api/admin/posts/$id/status'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'status': status}),
       );
       if (res.statusCode == 200) _load();
@@ -518,8 +535,14 @@ class _PendingEventsState extends State<_PendingEvents> {
       _error = null;
     });
     try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
       final res = await http.get(
-          Uri.parse('${widget.baseUrl}/api/admin/pending-events'));
+          Uri.parse('${widget.baseUrl}/api/admin/pending-events'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
@@ -537,9 +560,15 @@ class _PendingEventsState extends State<_PendingEvents> {
 
   Future<void> _act(String id, String status) async {
     try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
       final res = await http.put(
         Uri.parse('${widget.baseUrl}/api/admin/events/$id/status'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'status': status}),
       );
       if (res.statusCode == 200) _load();
@@ -606,7 +635,13 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final res = await http.get(Uri.parse('${widget.baseUrl}/api/admin/pending-opportunities'));
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/admin/pending-opportunities'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() { _items = jsonDecode(res.body) as List<dynamic>; });
     } catch (_) {
@@ -618,9 +653,15 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
 
   Future<void> _act(String id, String status) async {
     try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
       final res = await http.put(
         Uri.parse('${widget.baseUrl}/api/admin/opportunities/$id/status'),
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: jsonEncode({ 'status': status }),
       );
       if (res.statusCode == 200) _load();

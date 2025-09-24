@@ -15,7 +15,6 @@ class _EventsPageState extends State<EventsPage> {
   bool _loading = true;
   String? _error;
   List<dynamic> _items = [];
-  bool _creating = false;
 
   @override
   void initState() {
@@ -36,7 +35,6 @@ class _EventsPageState extends State<EventsPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,13 +49,70 @@ class _EventsPageState extends State<EventsPage> {
                     padding: const EdgeInsets.all(16),
                     itemBuilder: (_, i) {
                       final e = _items[i] as Map<String, dynamic>;
-                      return ListTile(
-                        title: Text((e['title'] ?? '').toString()),
-                        subtitle: Text((e['description'] ?? '').toString()),
-                        trailing: const Icon(Icons.chevron_right),
+                      final title = (e['title'] ?? '').toString();
+                      final description = (e['description'] ?? '').toString();
+                      final dateStr = (e['date'] ?? '').toString();
+                      final location = (e['location'] ?? '').toString();
+                      final imageUrl = (e['imageUrl'] ?? '').toString();
+                      final formattedDate = _formatDate(dateStr);
+
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.event, size: 16, color: Colors.blueGrey),
+                                            const SizedBox(width: 4),
+                                            Text(formattedDate, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                          ],
+                                        ),
+                                        if (location.isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.place, size: 16, color: Colors.blueGrey),
+                                              const SizedBox(width: 4),
+                                              Expanded(child: Text(location, style: const TextStyle(fontSize: 12, color: Colors.black54))),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (description.isNotEmpty) Text(description),
+                              if (imageUrl.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    '$_baseUrl$imageUrl',
+                                    height: 180,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       );
                     },
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemCount: _items.length,
                   ),
                 ),
@@ -66,23 +121,20 @@ class _EventsPageState extends State<EventsPage> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const PostEventPage()),
-          ).then((_) => _load()); // Refresh after returning
+          ).then((_) => _load());
         },
         icon: const Icon(Icons.add),
         label: const Text('Post Event'),
       ),
     );
   }
-}
 
-class EventPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Events Page Content',
-        style: TextStyle(fontSize: 24),
-      ),
-    );
+  String _formatDate(String raw) {
+    try {
+      final dt = DateTime.parse(raw);
+      return '${dt.year}-${dt.month.toString().padLeft(2,'0')}-${dt.day.toString().padLeft(2,'0')}';
+    } catch (_) {
+      return raw;
+    }
   }
 }

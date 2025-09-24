@@ -17,7 +17,6 @@ class _SignInPageState extends State<SignInPage> {
   bool _isLoading = false;
   String? _error;
 
-  // TODO: set your backend base URL here or move to a config
   static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
@@ -66,21 +65,25 @@ class _SignInPageState extends State<SignInPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Welcome Back",
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
-
-              SizedBox(height: 8),
-              Text(
-                "Sign in to continue",
-                style: TextStyle(color: Colors.black54),
+              const SizedBox(height: 32),
+              Center(
+                child: Column(
+                  children: [
+                    Image.asset('assets/logo.png', height: 96),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Welcome to Alva\'s Alumni',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
               ),
 
-              SizedBox(height: 28),
+              const SizedBox(height: 28),
 
               if (_error != null) ...[
                 Container(
@@ -96,30 +99,27 @@ class _SignInPageState extends State<SignInPage> {
                 const SizedBox(height: 16),
               ],
 
-              // Email
               TextField(
                 controller: emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
+                decoration: const InputDecoration(
+                  labelText: 'Email',
                   border: OutlineInputBorder(),
                 ),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-              // Password
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
+                decoration: const InputDecoration(
+                  labelText: 'Password',
                   border: OutlineInputBorder(),
                 ),
               ),
 
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-              // Forgot password
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -128,17 +128,19 @@ class _SignInPageState extends State<SignInPage> {
                     const Text('Remember me')
                   ]),
                   TextButton(
-                    onPressed: () {},
-                    child: const Text("Forgot Password?"),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ResetPasswordPage()),
+                    ),
+                    child: const Text('Forgot Password?'),
                   ),
                 ],
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-              // Sign In Button
               _isLoading
-                  ? CircularProgressIndicator()
+                  ? const CircularProgressIndicator()
                   : SizedBox(
                       width: double.infinity,
                       height: 54,
@@ -149,26 +151,128 @@ class _SignInPageState extends State<SignInPage> {
                               borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text(
-                          "Sign In",
+                          'Sign In',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       )),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-              // Sign Up link
               Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("New here? "),
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/signup'),
-                      child: const Text("Create account",
-                          style: TextStyle(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ])
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('New here? '),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/signup'),
+                    child: const Text('Create account',
+                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ResetPasswordPage extends StatefulWidget {
+  const ResetPasswordPage({super.key});
+  @override
+  State<ResetPasswordPage> createState() => _ResetPasswordPageState();
+}
+
+class _ResetPasswordPageState extends State<ResetPasswordPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _pwdCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/auth/reset-password'),
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonEncode({
+          'email': _emailCtrl.text.trim(),
+          'newPassword': _pwdCtrl.text,
+        }),
+      );
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset successful')));
+          Navigator.pop(context);
+        }
+      } else {
+        final err = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+        setState(() { _error = err?['message']?.toString() ?? 'Failed to reset password'; });
+      }
+    } catch (_) {
+      setState(() { _error = 'Network error'; });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reset Password')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_error != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    border: Border.all(color: Colors.redAccent),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextFormField(
+                controller: _emailCtrl,
+                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter email' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _pwdCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New Password', border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.isEmpty) ? 'Enter password' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _confirmCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Confirm Password', border: OutlineInputBorder()),
+                validator: (v) => (v != _pwdCtrl.text) ? 'Passwords do not match' : null,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _submit,
+                  child: _loading ? const CircularProgressIndicator() : const Text('Reset Password'),
+                ),
+              ),
             ],
           ),
         ),

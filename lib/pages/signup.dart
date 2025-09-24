@@ -17,13 +17,18 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
-  final TextEditingController institutionController = TextEditingController();
-  final TextEditingController courseController = TextEditingController();
-  final TextEditingController yearController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController favTeacherController = TextEditingController();
   final TextEditingController socialMediaController = TextEditingController();
+
+  String? _institution;
+  String? _course;
+  String? _year; // year of passed out
+
+  final List<String> _institutions = <String>['AIET','AIT','AIIMS','NIT','IIT'];
+  final List<String> _courses = <String>['CSE','ECE','EEE','MECH','CIVIL','MBA','MCA'];
+  final List<String> _years = List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
 
   bool _isLoading = false;
   String? _error;
@@ -47,9 +52,9 @@ class _SignUpPageState extends State<SignUpPage> {
             'email': emailController.text.trim(),
             'phone': phoneController.text.trim(),
             'dob': DateTime.tryParse(dobController.text) != null ? dobController.text : DateTime.now().toIso8601String(),
-            'institution': institutionController.text.trim(),
-            'course': courseController.text.trim(),
-            'year': yearController.text.trim(),
+            'institution': _institution ?? '',
+            'course': _course ?? '',
+            'year': _year ?? '',
             'password': passwordController.text,
             'favTeacher': favTeacherController.text.trim(),
             'socialMedia': socialMediaController.text.trim(),
@@ -125,8 +130,7 @@ class _SignUpPageState extends State<SignUpPage> {
               TextFormField(
                 controller: emailController,
                 decoration: const InputDecoration(labelText: "Email"),
-                validator: (value) =>
-                value!.isEmpty ? "Enter email" : null,
+                validator: (value) => value!.isEmpty ? "Enter email" : null,
               ),
               const SizedBox(height: 10),
 
@@ -135,8 +139,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: phoneController,
                 decoration: const InputDecoration(labelText: "Phone Number"),
                 keyboardType: TextInputType.phone,
-                validator: (value) =>
-                value!.isEmpty ? "Enter phone number" : null,
+                validator: (value) => value!.isEmpty ? "Enter phone number" : null,
               ),
               const SizedBox(height: 10),
 
@@ -153,31 +156,45 @@ class _SignUpPageState extends State<SignUpPage> {
                     lastDate: DateTime.now(),
                   );
                   if (pickedDate != null) {
-                    dobController.text =
-                    "${pickedDate.day}-${pickedDate.month}-${pickedDate.year}";
+                    dobController.text = "${pickedDate.day}-${pickedDate.month}-${pickedDate.year}";
                   }
                 },
               ),
               const SizedBox(height: 10),
 
-              // Institution
-              TextFormField(
-                controller: institutionController,
+              // Institution dropdown
+              DropdownButtonFormField<String>(
+                value: _institution,
+                items: [
+                  ..._institutions.map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                ],
+                onChanged: (v) => setState(() { _institution = v; }),
                 decoration: const InputDecoration(labelText: "Institution"),
+                validator: (v) => (v == null || v.isEmpty) ? 'Select institution' : null,
               ),
               const SizedBox(height: 10),
 
-              // Course
-              TextFormField(
-                controller: courseController,
+              // Course dropdown
+              DropdownButtonFormField<String>(
+                value: _course,
+                items: [
+                  ..._courses.map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                ],
+                onChanged: (v) => setState(() { _course = v; }),
                 decoration: const InputDecoration(labelText: "Course"),
+                validator: (v) => (v == null || v.isEmpty) ? 'Select course' : null,
               ),
               const SizedBox(height: 10),
 
-              // Year
-              TextFormField(
-                controller: yearController,
-                decoration: const InputDecoration(labelText: "Year of Study"),
+              // Year of passed-out dropdown
+              DropdownButtonFormField<String>(
+                value: _year,
+                items: [
+                  ..._years.map((y) => DropdownMenuItem(value: y, child: Text(y)))
+                ],
+                onChanged: (v) => setState(() { _year = v; }),
+                decoration: const InputDecoration(labelText: "Year of Passed-out"),
+                validator: (v) => (v == null || v.isEmpty) ? 'Select year' : null,
               ),
               const SizedBox(height: 10),
 
@@ -194,8 +211,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: confirmPasswordController,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: "Confirm Password"),
-                validator: (value) =>
-                value != passwordController.text ? "Passwords don’t match" : null,
+                validator: (value) => value != passwordController.text ? "Passwords don’t match" : null,
               ),
               const SizedBox(height: 10),
 
@@ -218,8 +234,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                 onPressed: _signUp,
-                style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50)),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                 child: const Text("Sign Up"),
               ),
             ],

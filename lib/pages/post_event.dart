@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
 
@@ -61,9 +62,16 @@ class _PostEventPageState extends State<PostEventPage> {
         request.fields['location'] = _locationController.text.trim();
         request.fields['status'] = 'pending'; // Set as pending for admin approval
 
-        // Add image
+        // Add image with content type
+        final filePath = _selectedImage!.path;
+        final extension = filePath.split('.').last.toLowerCase();
+        final subtype = (extension == 'jpg') ? 'jpeg' : extension;
         request.files.add(
-          await http.MultipartFile.fromPath('image', _selectedImage!.path),
+          await http.MultipartFile.fromPath(
+            'image',
+            filePath,
+            contentType: MediaType('image', subtype),
+          ),
         );
 
         // Add auth token

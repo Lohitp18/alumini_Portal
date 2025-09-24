@@ -20,13 +20,19 @@ class _AlumniPageState extends State<AlumniPage> {
   // Filters
   final TextEditingController _searchCtrl = TextEditingController();
   String? _selectedYear;
-  final TextEditingController _institutionCtrl = TextEditingController();
-  final TextEditingController _courseCtrl = TextEditingController();
+  String? _selectedInstitution;
+  String? _selectedCourse;
 
+  // Mock lists for now; you can populate via API later
   final List<String> _years = [
-    null,
-    ...List<String>.generate(8, (i) => (DateTime.now().year - i).toString())
-  ].whereType<String>().toList();
+    ...List<String>.generate(30, (i) => (DateTime.now().year - i).toString())
+  ];
+  final List<String> _institutions = <String>[
+    'AIET','AIT','AIIMS','NIT','IIT'
+  ];
+  final List<String> _courses = <String>[
+    'CSE','ECE','EEE','MECH','CIVIL','MBA','MCA'
+  ];
 
   @override
   void initState() {
@@ -41,21 +47,12 @@ class _AlumniPageState extends State<AlumniPage> {
     });
     try {
       final params = <String, String>{};
-      if (_selectedYear != null && _selectedYear!.isNotEmpty) {
-        params['year'] = _selectedYear!;
-      }
-      if (_institutionCtrl.text.trim().isNotEmpty) {
-        params['institution'] = _institutionCtrl.text.trim();
-      }
-      if (_courseCtrl.text.trim().isNotEmpty) {
-        params['course'] = _courseCtrl.text.trim();
-      }
-      if (_searchCtrl.text.trim().isNotEmpty) {
-        params['q'] = _searchCtrl.text.trim();
-      }
+      if (_selectedYear != null && _selectedYear!.isNotEmpty) params['year'] = _selectedYear!;
+      if (_selectedInstitution != null && _selectedInstitution!.isNotEmpty) params['institution'] = _selectedInstitution!;
+      if (_selectedCourse != null && _selectedCourse!.isNotEmpty) params['course'] = _selectedCourse!;
+      if (_searchCtrl.text.trim().isNotEmpty) params['q'] = _searchCtrl.text.trim();
 
-      final uri = Uri.parse('$_baseUrl/api/users/approved')
-          .replace(queryParameters: params.isEmpty ? null : params);
+      final uri = Uri.parse('$_baseUrl/api/users/approved').replace(queryParameters: params.isEmpty ? null : params);
       final res = await http.get(uri);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
@@ -129,53 +126,60 @@ class _AlumniPageState extends State<AlumniPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              // Year dropdown
-              SizedBox(
-                width: 120,
-                child: DropdownButtonFormField<String>(
-                  value: _selectedYear,
-                  items: [
-                    const DropdownMenuItem<String>(value: null, child: Text('Any')),
-                    ..._years.map((y) => DropdownMenuItem(value: y, child: Text(y)))
-                  ],
-                  onChanged: (v) {
-                    setState(() {
-                      _selectedYear = v;
-                    });
-                  },
-                  decoration: const InputDecoration(
-                    labelText: 'Year',
-                    border: OutlineInputBorder(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  SizedBox(
+                    width: 130,
+                    child: DropdownButtonFormField<String?>(
+                      value: _selectedYear,
+                      items: [
+                        const DropdownMenuItem<String?>(value: null, child: Text('Any')),
+                        ..._years.map((y) => DropdownMenuItem<String?>(value: y, child: Text(y)))
+                      ],
+                      onChanged: (v) => setState(() { _selectedYear = v; }),
+                      decoration: const InputDecoration(
+                        labelText: 'Year',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Institution
-              Expanded(
-                child: TextField(
-                  controller: _institutionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Institution',
-                    border: OutlineInputBorder(),
+                  SizedBox(
+                    width: constraints.maxWidth > 600 ? 220 : (constraints.maxWidth - 130) / 2 - 12,
+                    child: DropdownButtonFormField<String?>(
+                      value: _selectedInstitution,
+                      items: [
+                        const DropdownMenuItem<String?>(value: null, child: Text('Any institution')),
+                        ..._institutions.map((i) => DropdownMenuItem<String?>(value: i, child: Text(i)))
+                      ],
+                      onChanged: (v) => setState(() { _selectedInstitution = v; }),
+                      decoration: const InputDecoration(
+                        labelText: 'Institution',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                   ),
-                  onSubmitted: (_) => _load(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Course
-              Expanded(
-                child: TextField(
-                  controller: _courseCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Course',
-                    border: OutlineInputBorder(),
+                  SizedBox(
+                    width: constraints.maxWidth > 600 ? 220 : (constraints.maxWidth - 130) / 2 - 12,
+                    child: DropdownButtonFormField<String?>(
+                      value: _selectedCourse,
+                      items: [
+                        const DropdownMenuItem<String?>(value: null, child: Text('Any course')),
+                        ..._courses.map((c) => DropdownMenuItem<String?>(value: c, child: Text(c)))
+                      ],
+                      onChanged: (v) => setState(() { _selectedCourse = v; }),
+                      decoration: const InputDecoration(
+                        labelText: 'Course',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                   ),
-                  onSubmitted: (_) => _load(),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           )
         ],
       ),
@@ -197,49 +201,23 @@ class _AlumniTileState extends State<_AlumniTile> {
   bool _sent = false;
 
   Future<void> _connect() async {
-    setState(() {
-      _busy = true;
-    });
+    setState(() { _busy = true; });
     try {
-      // Read token safely
       final token = await const FlutterSecureStorage().read(key: 'auth_token') ?? '';
-
       final res = await http.post(
         Uri.parse('${widget.baseUrl}/api/connections/${widget.user['_id']}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': 'Bearer $token', 'Content-Type': 'application/json' },
       );
-
       if (res.statusCode == 201) {
-        setState(() {
-          _sent = true;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Connection request sent')),
-          );
-        }
+        setState(() { _sent = true; });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection request sent')));
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed: ${res.statusCode}')),
-          );
-        }
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${res.statusCode}')));
       }
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error sending request')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error sending request')));
     } finally {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-        });
-      }
+      if (mounted) setState(() { _busy = false; });
     }
   }
 
@@ -259,11 +237,7 @@ class _AlumniTileState extends State<_AlumniTile> {
           : ElevatedButton(
         onPressed: _busy ? null : _connect,
         child: _busy
-            ? const SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
+            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
             : const Text('Connect'),
       ),
     );

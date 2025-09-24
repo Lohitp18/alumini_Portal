@@ -3,6 +3,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'user_profile_view.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:http_parser/http_parser.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -126,115 +130,135 @@ class _HomePageState extends State<HomePage> {
                     .toString();
                 final type = item['type'] ?? item['category'] ?? 'Post';
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Post header with user info (clickable)
-                      _buildUserInfoHeader(item),
+                return Card(
+  margin: const EdgeInsets.only(bottom: 16),
+  child: Padding(
+    padding: const EdgeInsets.all(12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Post header with user info (clickable)
+        _buildUserInfoHeader(item),
 
-                      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-                      // Post header
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              type.toString(),
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ),
+        // Post header (type + title)
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                type.toString(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
 
-                      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-                      // Subtitle (date/author/institution/etc.)
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.black54, fontSize: 12),
-                      ),
+        // Subtitle (date/author/institution/etc.)
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontSize: 12,
+          ),
+        ),
 
-                      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-                      // Post content
-                      if (item['content'] != null &&
-                          item['content'].toString().isNotEmpty)
-                        Text(
-                          item['content'],
-                          style: const TextStyle(fontSize: 14),
-                        ),
+        // Post content
+        if (item['content'] != null &&
+            item['content'].toString().isNotEmpty)
+          Text(
+            item['content'],
+            style: const TextStyle(fontSize: 14),
+          ),
 
-                      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-                      // Show first image if exists
-                      if (item['images'] != null &&
-                          item['images'] is List &&
-                          (item['images'] as List).isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            item['images'][0],
-                            fit: BoxFit.cover,
-                            height: 200,
-                            width: double.infinity,
-                          ),
-                        ),
+        // Show image if exists (supports images[0] or imageUrl)
+        if (item['images'] != null &&
+            item['images'] is List &&
+            (item['images'] as List).isNotEmpty)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              item['images'][0],
+              fit: BoxFit.cover,
+              height: 200,
+              width: double.infinity,
+            ),
+          )
+        else if (item['imageUrl'] != null &&
+            item['imageUrl'].toString().isNotEmpty)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              '$_baseUrl${item['imageUrl']}',
+              fit: BoxFit.cover,
+              height: 200,
+              width: double.infinity,
+            ),
+          ),
 
-                      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-                      // Action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _LikeButton(
-                            postId: item['_id'],
-                            baseUrl: _baseUrl,
-                            initialLiked: item['isLiked'] ?? false,
-                            initialLikeCount: item['likeCount'] ?? item['likes']?.length ?? 0,
-                          ),
-                          _ReportButton(
-                            postId: item['_id'],
-                            baseUrl: _baseUrl,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
+        // Action buttons
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _LikeButton(
+              postId: item['_id'],
+              baseUrl: _baseUrl,
+              initialLiked: item['isLiked'] ?? false,
+              initialLikeCount:
+                  item['likeCount'] ?? item['likes']?.length ?? 0,
+            ),
+            if (item['applyLink'] != null && item['applyLink'].toString().isNotEmpty)
+              TextButton.icon(
+                onPressed: () async {
+                  final url = item['applyLink'].toString();
+                  final uri = Uri.tryParse(url);
+                  if (uri != null) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.launch),
+                label: const Text('Apply'),
+              ),
+            _ReportButton(
+              postId: item['_id'],
+              baseUrl: _baseUrl,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+);
               },
             ),
+
             Positioned(
               right: 16,
               bottom: 16,
@@ -362,6 +386,15 @@ class _CreatePostPageState extends State<_CreatePostPage> {
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
   bool _loading = false;
+  File? _imageFile;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() { _imageFile = File(picked.path); });
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -371,18 +404,42 @@ class _CreatePostPageState extends State<_CreatePostPage> {
     try {
       final token =
           await const FlutterSecureStorage().read(key: 'auth_token') ?? '';
-      final res = await http.post(
-        Uri.parse('$_baseUrl/api/posts'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'title': _titleCtrl.text.trim(),
-          'content': _contentCtrl.text.trim(),
-        }),
-      );
-      if (res.statusCode == 201) {
+      http.StreamedResponse streamed;
+      if (_imageFile != null) {
+        final req = http.MultipartRequest('POST', Uri.parse('$_baseUrl/api/posts'));
+        req.fields['title'] = _titleCtrl.text.trim();
+        req.fields['content'] = _contentCtrl.text.trim();
+        if (token.isNotEmpty) req.headers['Authorization'] = 'Bearer $token';
+        final ext = _imageFile!.path.split('.').last.toLowerCase();
+        final subtype = (ext == 'jpg') ? 'jpeg' : ext;
+        req.files.add(await http.MultipartFile.fromPath(
+          'image',
+          _imageFile!.path,
+          contentType: MediaType('image', subtype),
+        ));
+        streamed = await req.send();
+      } else {
+        final res = await http.post(
+          Uri.parse('$_baseUrl/api/posts'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'title': _titleCtrl.text.trim(),
+            'content': _contentCtrl.text.trim(),
+          }),
+        );
+        // Convert to StreamedResponse-like handling
+        streamed = http.StreamedResponse(
+          Stream.value(res.bodyBytes),
+          res.statusCode,
+          headers: res.headers,
+          reasonPhrase: res.reasonPhrase,
+          request: res.request,
+        );
+      }
+      if (streamed.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Post submitted for verification')));
@@ -390,8 +447,7 @@ class _CreatePostPageState extends State<_CreatePostPage> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed: ${res.statusCode}')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${streamed.statusCode}')));
         }
       }
     } catch (_) {
@@ -428,6 +484,25 @@ class _CreatePostPageState extends State<_CreatePostPage> {
                 maxLines: 5,
                 validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.add_a_photo),
+                  label: const Text('Add image (optional)'),
+                ),
+              ),
+              if (_imageFile != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    _imageFile!,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'post_opportunity.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OpportunitiesPage extends StatefulWidget {
   const OpportunitiesPage({super.key});
@@ -50,11 +51,24 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                     padding: const EdgeInsets.all(16),
                     itemBuilder: (_, i) {
                       final e = _items[i] as Map<String, dynamic>;
-                      return ListTile(
-                        title: Text((e['title'] ?? '').toString()),
-                        subtitle: Text((e['company'] ?? '').toString()),
-                        trailing: const Icon(Icons.launch),
-                        onTap: () {},
+                      final title = (e['title'] ?? '').toString();
+                      final company = (e['company'] ?? '').toString();
+                      final apply = (e['applyLink'] ?? '').toString();
+                      return Card(
+                        child: ListTile(
+                          title: Text(title),
+                          subtitle: Text(company),
+                          trailing: TextButton.icon(
+                            onPressed: apply.isEmpty ? null : () async {
+                              final uri = Uri.tryParse(apply);
+                              if (uri != null) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            icon: const Icon(Icons.launch),
+                            label: const Text('Apply'),
+                          ),
+                        ),
                       );
                     },
                     separatorBuilder: (_, __) => const Divider(height: 1),
