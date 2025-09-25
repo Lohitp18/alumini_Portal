@@ -290,7 +290,7 @@ class _HomePageState extends State<HomePage> {
     final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
     final authorImage = author?['profileImage'];
     final authorId = author?['_id'];
-    
+
     // For InstitutionPost, show institution name instead of user
     if (item['institution'] != null) {
       return Row(
@@ -301,9 +301,9 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: Colors.blue.shade100,
             child: const Icon(Icons.school, color: Colors.blue, size: 16),
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // Institution name
           Text(
             item['institution'],
@@ -316,7 +316,7 @@ class _HomePageState extends State<HomePage> {
         ],
       );
     }
-    
+
     // For regular posts with user information
     if (authorId != null) {
       return Row(
@@ -327,17 +327,17 @@ class _HomePageState extends State<HomePage> {
             child: CircleAvatar(
               radius: 16,
               backgroundColor: Colors.grey.shade300,
-              backgroundImage: authorImage != null 
-                  ? NetworkImage(authorImage) 
+              backgroundImage: authorImage != null
+                  ? NetworkImage(authorImage)
                   : null,
-              child: authorImage == null 
+              child: authorImage == null
                   ? const Icon(Icons.person, color: Colors.grey, size: 16)
                   : null,
             ),
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // User name (clickable)
           GestureDetector(
             onTap: () => _navigateToUserProfile(authorId),
@@ -353,7 +353,7 @@ class _HomePageState extends State<HomePage> {
         ],
       );
     }
-    
+
     // Fallback for posts without user information
     return const SizedBox.shrink();
   }
@@ -565,7 +565,7 @@ class _LikeButtonState extends State<_LikeButton> {
     try {
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
-      
+
       if (token == null || token.isEmpty) {
         throw Exception('Authentication required');
       }
@@ -710,7 +710,7 @@ class _ReportButton extends StatelessWidget {
     try {
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
-      
+
       if (token == null || token.isEmpty) {
         throw Exception('Authentication required');
       }

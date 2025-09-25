@@ -34,6 +34,10 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -96,8 +100,8 @@ class _UsersAdminState extends State<_UsersAdmin> {
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/api/admin/approved-users')
-          : Uri.parse('${widget.baseUrl}/api/admin/users');
+          ? Uri.parse('${widget.baseUrl}/api/admin/users?status=approved')
+          : Uri.parse('${widget.baseUrl}/api/admin/users?status=pending');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -404,8 +408,8 @@ class _PostsAdminState extends State<_PostsAdmin> {
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/api/content/admin/approved-posts')
-          : Uri.parse('${widget.baseUrl}/api/content/admin/pending-posts');
+          ? Uri.parse('${widget.baseUrl}/api/posts?status=approved')
+          : Uri.parse('${widget.baseUrl}/api/posts?status=pending');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -424,7 +428,7 @@ class _PostsAdminState extends State<_PostsAdmin> {
     try {
       final headers = await _authHeaders();
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/posts/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/posts/$id/status'),
         headers: headers,
         body: jsonEncode({'status': status}),
       );
@@ -542,7 +546,7 @@ class _PendingEventsState extends State<_PendingEvents> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.get(
-          Uri.parse('${widget.baseUrl}/api/content/admin/pending-events'), headers: headers);
+          Uri.parse('${widget.baseUrl}/api/content/events?status=pending'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
@@ -567,7 +571,7 @@ class _PendingEventsState extends State<_PendingEvents> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/events/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/events/$id/status'),
         headers: headers,
         body: jsonEncode({'status': status}),
       );
@@ -641,7 +645,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       };
-      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/admin/pending-opportunities'), headers: headers);
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/opportunities?status=pending'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() { _items = jsonDecode(res.body) as List<dynamic>; });
     } catch (_) {
@@ -660,7 +664,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/opportunities/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/opportunities/$id/status'),
         headers: headers,
         body: jsonEncode({ 'status': status }),
       );

@@ -334,7 +334,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Stack(
             children: [
               Container(
-                height: 200,
+                height: 120, // Reduced from 200
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
@@ -346,7 +346,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       : null,
                 ),
                 child: _userProfile!['coverImage'] == null
-                    ? const Icon(Icons.image, size: 80, color: Colors.grey)
+                    ? const Icon(Icons.image, size: 40, color: Colors.grey)
                     : null,
               ),
               Positioned(
@@ -357,9 +357,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black45,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
-                  icon: const Icon(Icons.camera_alt, size: 18),
-                  label: const Text('Edit cover'),
+                  icon: const Icon(Icons.camera_alt, size: 16),
+                  label: const Text('Edit cover', style: TextStyle(fontSize: 12)),
                 ),
               ),
             ],
@@ -375,13 +376,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   clipBehavior: Clip.none,
                   children: [
                     CircleAvatar(
-                      radius: 60,
+                      radius: 40, // Reduced from 60
                       backgroundColor: Colors.white,
                       backgroundImage: _userProfile!['profileImage'] != null
                           ? NetworkImage(_normalizedUrl(_userProfile!['profileImage']))
                           : null,
                       child: _userProfile!['profileImage'] == null
-                          ? const Icon(Icons.person, size: 60, color: Colors.grey)
+                          ? const Icon(Icons.person, size: 40, color: Colors.grey)
                           : null,
                     ),
                     Positioned(
@@ -390,7 +391,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: InkWell(
                         onTap: () => _pickAndUploadImage(isProfile: true),
                         child: Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: Colors.blue,
                             shape: BoxShape.circle,
@@ -402,31 +403,31 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 14),
                         ),
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced from 16
 
                 // Name and Headline
                 Text(
                   _userProfile!['name'] ?? 'No Name',
                   style: const TextStyle(
-                    fontSize: 28,
+                    fontSize: 24, // Reduced from 28
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
 
                 if (_userProfile!['headline'] != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6), // Reduced from 8
                   Text(
                     _userProfile!['headline'],
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14, // Reduced from 16
                       color: Colors.white70,
                     ),
                     textAlign: TextAlign.center,
@@ -434,50 +435,37 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
 
                 if (_userProfile!['location'] != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6), // Reduced from 8
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.location_on, color: Colors.white70, size: 16),
+                      const Icon(Icons.location_on, color: Colors.white70, size: 14),
                       const SizedBox(width: 4),
                       Text(
                         _userProfile!['location'],
-                        style: const TextStyle(color: Colors.white70),
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ],
                   ),
                 ],
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced from 16
 
-                // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ConnectionsPage()),
-                        );
-                      },
-                      icon: const Icon(Icons.group),
-                      label: const Text('Connections'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.blue.shade700,
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _showEditProfileDialog,
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit Profile'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white),
-                      ),
-                    ),
-                  ],
+                // Single Connect Button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ConnectionsPage()),
+                    );
+                  },
+                  icon: const Icon(Icons.group, size: 18),
+                  label: const Text('Connect', style: TextStyle(fontSize: 14)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  ),
                 ),
               ],
             ),
